@@ -1,0 +1,31 @@
+services:
+  #  database
+  database:
+    image: postgres:latest
+    volumes:
+      - postgres:/var/lib/postgres
+    container_name: postgres
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+
+  # S3
+  objectStorage:
+    image: quay.io/minio/minio:latest
+    volumes:
+      - minio:/data
+    command: server /data --console-address ":9001"
+    container_name: minio
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+
+volumes:
+  postgres:
+  minio:

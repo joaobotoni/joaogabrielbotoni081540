@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: backend
+  messages:
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  flyway:
+    enabled: true
+    locations: ${MIGRATION_PATH}
+jwt:
+  secret: ${SECRET_KEY}
+  expiration:
+    access: ${JWT_ACCESS_EXPIRATION}
+    refresh: ${JWT_REFRESH_EXPIRATION}
+minio:
+  access-key: ${MINIO_ROOT_USER}
+  secret-key: ${MINIO_ROOT_PASSWORD}
+  endpoint: ${MINIO_URL}
+  bucket-name: ${MINIO_BUCKET_NAME}
+api:
+  domain: ${DOMAIN}

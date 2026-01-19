@@ -5,33 +5,33 @@
                 <label for="name" class="block text-sm/6 font-medium text-black">Nome</label>
                 <div class="mt-2">
                     <input id="email" type="text" name="name" placeholder="Digite o seu nome"
-                        class="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-gray-300 placeholder:text-black-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6" />
+                        class="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-gray-300 placeholder:text-black-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6" [(ngModel)]="content.username" />
                 </div>
             </div>
 
             <div>
-               <label for="email" class="block text-sm/6 font-medium text-black">Endereço de Email</label>
+                <label for="email" class="block text-sm/6 font-medium text-black">Endereço de Email</label>
                 <div class="mt-2">
                     <input id="email" type="email" name="email" placeholder="Digite o seu email" required
                         autocomplete="email"
-                        class="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-gray-300 placeholder:text-black-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6" />
+                        class="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-gray-300 placeholder:text-black-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6" [(ngModel)]="content.email" />
                 </div>
             </div>
 
-             <div>
+            <div>
                 <div class="flex items-center justify-between">
                     <label for="password" class="block text-sm/6 font-medium text-black">Senha</label>
                 </div>
                 <div class="mt-2">
                     <input id="password" type="password" name="password" placeholder="Digite a sua senha"
                         autocomplete="current-password"
-                        class="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-gray-300 placeholder:text-black-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6" />
+                        class="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-black outline-1 -outline-offset-1 outline-gray-300 placeholder:text-black-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6" [(ngModel)]="content.password" />
                 </div>
             </div>
 
             <div>
                 <button type="submit"
-                    class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">
+                    class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors" (click)="register()">
                     Criar conta
                 </button>
             </div>
@@ -39,7 +39,7 @@
 
         <p class="mt-8 text-center text-sm text-gray-600">
             Já tem uma conta?
-            <a href="#" class="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors duration-200">
+            <a href="#" class="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors duration-200" routerLink="/login">
                 Fazer login
             </a>
         </p>

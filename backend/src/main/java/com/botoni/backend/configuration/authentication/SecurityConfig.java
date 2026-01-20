@@ -36,9 +36,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/refresh").permitAll()
                         .requestMatchers(HttpMethod.POST, "/logout").permitAll()
                         .anyRequest().authenticated())
+                .logout(AbstractHttpConfigurer::disable)
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
+
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config)  {

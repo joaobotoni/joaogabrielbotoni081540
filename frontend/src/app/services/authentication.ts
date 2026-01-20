@@ -10,14 +10,16 @@ import { Observable } from 'rxjs';
   providedIn: 'root',
 })
 export class Authentication {
+
   private http = inject(HttpClient);
+
   private readonly url: string = "http://localhost:8080"
 
   register(body: RegisterRequest): Observable<RegisterResponse> {
-    return this.http.post<RegisterResponse>(`${this.url}/register`, body)
+    return this.http.post<RegisterResponse>(`${this.url}/register`, body, { withCredentials: true })
   }
 
   login(body: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.url}/login`, body);
+    return this.http.post<LoginResponse>(`${this.url}/login`, body, { withCredentials: true });
   }
 }

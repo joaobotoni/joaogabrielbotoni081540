@@ -42,8 +42,8 @@ public class AuthenticationController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
+    public ResponseEntity<String> logout(HttpServletResponse response) {
         tokenService.clearRefreshTokenCookie(response);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("Desconectado com sucesso");
     }
 }

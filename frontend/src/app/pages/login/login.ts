@@ -1,28 +1,36 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, LOCALE_ID, signal } from '@angular/core';
+import { form, required, email } from '@angular/forms/signals';
 import { RouterLink } from "@angular/router";
-import { Authentication } from '../../services/authentication';
 import { LoginRequest } from '../../domain/authentication/login-request';
-import { FormsModule } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Alert } from '../../components/alert/alert';
+import { Message, error, success } from '../../domain/ui/message';
+import { InputComponent } from '../../components/input/input-component'
+import { LoginService } from '../../services/login-service';
+
 
 @Component({
   selector: 'app-login',
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, InputComponent, Alert],
   templateUrl: './login.html',
 })
 export class Login {
+  
+  private readonly loginService = inject(LoginService);
+  protected data = signal<LoginRequest>({ email: '', password: '' });
 
-  private readonly auth: Authentication = inject(Authentication);
-  private snackBar = inject(MatSnackBar);
+  protected readonly feedback = this.loginService.feedback
 
-  content: LoginRequest = {
-    email: '',
-    password: ''
-  }
+  protected loginForm = form(this.data, (schemaPath) => {
+    required(schemaPath.email, { message: "O email é obrigatorio" });
+    email(schemaPath.email, { message: "Formato de email invalido" });
+    required(schemaPath.password, { message: "A senha é obrigatoria" });
+  });
 
-  login() {
-    this.auth.login(this.content).subscribe((response) => {
-      this.snackBar.open(`Olá ${response.username}`, "OK")
-    })
+   protected formError(message: string): Message {
+    return error(message);
+  };
+
+  protected onSubmit() {
+     this.loginService.login(this.data());
   }
 }

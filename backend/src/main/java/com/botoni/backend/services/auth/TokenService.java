@@ -1,9 +1,11 @@
+// TokenService.java
 package com.botoni.backend.services.auth;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.botoni.backend.dtos.token.TokenPair;
 import com.botoni.backend.dtos.token.TokenResponse;
 import com.botoni.backend.entities.User;
 import com.botoni.backend.infra.exceptions.AuthenticationException;
@@ -35,6 +37,7 @@ public class TokenService {
 
     private final UserRepository userRepository;
 
+
     public String generateAccessToken(User user) {
         return createToken(user, accessExpiration);
     }
@@ -55,7 +58,24 @@ public class TokenService {
         }
     }
 
-    public TokenResponse refreshToken(String token) {
+    public TokenPair refreshToken(String token) {
+        User user = extractUser(token);
+        TokenResponse response = new TokenResponse(generateAccessToken(user));
+        String refreshToken = generateRefreshToken(user);
+        return new TokenPair(response, refreshToken);
+    }
+
+    public void addRefreshTokenToCookie(HttpServletResponse response, String token) {
+        Cookie cookie = createCookie(token, refreshExpiration.intValue());
+        response.addCookie(cookie);
+    }
+
+    public void clearRefreshTokenCookie(HttpServletResponse response) {
+        Cookie cookie = createCookie("", 0);
+        response.addCookie(cookie);
+    }
+
+    private User extractUser(String token) {
         try {
             String email = JWT.require(getAlgorithm())
                     .withIssuer(issuer)
@@ -63,34 +83,11 @@ public class TokenService {
                     .verify(token)
                     .getSubject();
 
-            User user = userRepository.findByEmail(email)
+            return userRepository.findByEmail(email)
                     .orElseThrow(() -> new AuthenticationException("Usuário não encontrado."));
-
-            return new TokenResponse(
-                    generateAccessToken(user),
-                    generateRefreshToken(user)
-            );
         } catch (JWTVerificationException e) {
-            throw new TokenException("Refresh token inválido ou expirado.");
+            throw new TokenException("Token inválido ou expirado.");
         }
-    }
-
-    public void addRefreshTokenToCookie(HttpServletResponse response, String refreshToken) {
-        Cookie cookie = new Cookie("refreshToken", refreshToken);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(refreshExpiration.intValue());
-        response.addCookie(cookie);
-    }
-
-    public void clearRefreshTokenCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie("refreshToken", "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
     }
 
     private String createToken(User user, long expirationSeconds) {
@@ -103,6 +100,15 @@ public class TokenService {
         } catch (JWTCreationException e) {
             throw new TokenException("Erro ao gerar token.");
         }
+    }
+
+    private Cookie createCookie(String value, int maxAge) {
+        Cookie cookie = new Cookie("refreshToken", value);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(maxAge);
+        return cookie;
     }
 
     private Algorithm getAlgorithm() {

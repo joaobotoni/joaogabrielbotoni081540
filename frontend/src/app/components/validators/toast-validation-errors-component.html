@@ -1,0 +1,7 @@
+@for (err of field().errors(); track err) {
+  @if (field().touched() || field().dirty()) {
+    <div class="w-full animate-fade-in">
+      <app-toast-component [toast]="error(err.message!)" />
+    </div>
+  }
+}

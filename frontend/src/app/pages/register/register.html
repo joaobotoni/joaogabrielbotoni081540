@@ -1,15 +1,18 @@
 @if (feedback()) {
-  <div class="fixed top-4 inset-x-4 z-50 md:inset-auto md:top-6 md:right-6 md:w-96 cursor-pointer animate-fade-in"
-       (click)="feedback.set(null)">
-      <app-alert [msg]="feedback()!"></app-alert>
-  </div>
+<div class="fixed top-4 inset-x-4 z-50 md:inset-auto md:top-6 md:right-6 md:w-96 cursor-pointer animate-fade-in"
+  (click)="feedback.set(null)">
+  <app-toast-component [toast]="feedback()!"></app-toast-component>
+</div>
 }
 <div class="relative flex min-h-screen flex-col justify-center overflow-hidden bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
   <div class="relative sm:mx-auto sm:w-full sm:max-w-[480px]">
     <div class="mb-10 text-center">
-      <div class="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/20">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-6 w-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+      <div
+        class="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/20">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+          class="h-6 w-6">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
         </svg>
       </div>
       <h2 class="text-3xl font-extrabold tracking-tight text-slate-900">
@@ -22,71 +25,46 @@
     <div class="bg-white rounded-2xl px-6 py-10 shadow-xl ring-1 ring-slate-300 sm:rounded-3xl sm:px-10">
       <form (submit)="$event.preventDefault()" class="space-y-5">
         <div>
-          <app-input-component 
-            [inputProps]="{
+          <app-edit-text-component [inputProps]="{
               id: 'name',
               label: 'Nome completo',
               type: 'text',
               placeholder: 'Ex: João Silva',
               autocomplete: 'name',
-              formField: registerForm.username
-            }">
-          </app-input-component>
-          
-          @for(error of registerForm.username().errors(); track error) {
-            @if(registerForm.username().touched() || registerForm.username().dirty()) {
-              <div class="w-full animate-fade-in">
-                <app-alert [msg]="formError(error.message!)"/>
-              </div>
-            }
-          }
+              field: validators.username
+            }"/>
+        
+          <app-toast-validation-errors-component [field]="validators.username" />
         </div>
         <div>
-          <app-input-component 
-            [inputProps]="{
-              id: 'email',
-              label: 'Email',
-              type: 'email',
-              placeholder: 'voce@empresa.com',
-              autocomplete: 'email',
-              formField: registerForm.email
-            }">
-          </app-input-component>
-
-          @for(error of registerForm.email().errors(); track error) {
-            @if(registerForm.email().touched() || registerForm.email().dirty()) {
-              <div class="w-full animate-fade-in">
-               <app-alert [msg]="formError(error.message!)"/>
-              </div>
-            }
-          }
+          <app-edit-text-component [inputProps]="{
+            id: 'email',
+            label: 'Email',
+            type: 'email',
+            placeholder: 'voce@empresa.com',
+            autocomplete: 'email',
+            field: validators.email
+          }"/>
+          <app-toast-validation-errors-component [field]="validators.email" />
         </div>
         <div>
-          <app-input-component 
-            [inputProps]="{
+          <app-edit-text-component [inputProps]="{
               id: 'password',
               label: 'Senha segura',
               type: 'password',
               placeholder: 'Digite a sua senha',
               autocomplete: 'new-password',
-              formField: registerForm.password
-            }">
-          </app-input-component>
-          @for(error of registerForm.password().errors(); track error) {
-            @if(registerForm.password().touched() || registerForm.password().dirty()) {
-              <div class="w-full animate-fade-in">
-                <app-alert [msg]="formError(error.message!)"/>
-              </div>
-            }
-          }
+              field: validators.password
+            }"/>
+          <app-toast-validation-errors-component [field]="validators.password" />
         </div>
         <div class="pt-4">
-          <button 
-            type="submit" 
-            (click)="onSubmit()"
+          <button type="submit" (click)="onSubmit()"
             class="group relative flex w-full justify-center rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-medium text-white shadow-lg shadow-slate-900/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-slate-900/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 active:translate-y-0 active:scale-[0.98]">
             <div class="absolute inset-0 overflow-hidden rounded-xl">
-               <div class="absolute -top-[100%] left-[50%] h-[20px] w-[200px] -translate-x-1/2 rotate-[25deg] bg-white/10 blur-xl transition-all duration-700 group-hover:top-[120%]"></div>
+              <div
+                class="absolute -top-[100%] left-[50%] h-[20px] w-[200px] -translate-x-1/2 rotate-[25deg] bg-white/10 blur-xl transition-all duration-700 group-hover:top-[120%]">
+              </div>
             </div>
             <span class="relative">Criar minha conta</span>
           </button>
@@ -94,8 +72,9 @@
       </form>
       <div class="mt-8 border-t border-slate-100 pt-6">
         <p class="text-center text-sm text-slate-500">
-          Já tem cadastro? 
-          <a routerLink="/login" class="font-medium text-indigo-600 transition-colors hover:text-indigo-500 hover:underline hover:decoration-2 hover:underline-offset-2">
+          Já tem cadastro?
+          <a routerLink="/login"
+            class="font-medium text-indigo-600 transition-colors hover:text-indigo-500 hover:underline hover:decoration-2 hover:underline-offset-2">
             Entrar agora
           </a>
         </p>

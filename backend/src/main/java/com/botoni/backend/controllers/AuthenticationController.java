@@ -1,11 +1,14 @@
+// AuthenticationController.java
 package com.botoni.backend.controllers;
 
 import com.botoni.backend.dtos.authentication.LoginRequest;
 import com.botoni.backend.dtos.authentication.LoginResponse;
 import com.botoni.backend.dtos.authentication.RegisterRequest;
 import com.botoni.backend.dtos.authentication.RegisterResponse;
+import com.botoni.backend.dtos.token.TokenPair;
 import com.botoni.backend.dtos.token.TokenResponse;
 import com.botoni.backend.services.auth.AuthenticationService;
+import com.botoni.backend.services.auth.AuthenticationService.AuthResult;
 import com.botoni.backend.services.auth.TokenService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -22,23 +25,23 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(@RequestBody @Valid RegisterRequest request, HttpServletResponse response) {
-        RegisterResponse data = authenticationService.register(request);
-        tokenService.addRefreshTokenToCookie(response, data.refreshToken());
-        return ResponseEntity.ok(data);
+        AuthResult<RegisterResponse> result = authenticationService.register(request);
+        tokenService.addRefreshTokenToCookie(response, result.refreshToken());
+        return ResponseEntity.ok(result.response());
     }
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request, HttpServletResponse response) {
-        LoginResponse data = authenticationService.login(request);
-        tokenService.addRefreshTokenToCookie(response, data.refreshToken());
-        return ResponseEntity.ok(data);
+        AuthResult<LoginResponse> result = authenticationService.login(request);
+        tokenService.addRefreshTokenToCookie(response, result.refreshToken());
+        return ResponseEntity.ok(result.response());
     }
 
     @PutMapping("/refresh")
     public ResponseEntity<TokenResponse> refresh(@CookieValue("refreshToken") String refreshToken, HttpServletResponse response) {
-        TokenResponse tokens = tokenService.refreshToken(refreshToken);
+        TokenPair tokens = tokenService.refreshToken(refreshToken);
         tokenService.addRefreshTokenToCookie(response, tokens.refreshToken());
-        return ResponseEntity.ok(tokens);
+        return ResponseEntity.ok(tokens.response());
     }
 
     @PostMapping("/logout")

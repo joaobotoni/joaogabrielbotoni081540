@@ -1,0 +1,12 @@
+<div class="mt-2 flex w-full items-start gap-3 rounded-xl p-3.5 shadow-sm
+       ring-1 ring-inset ring-black/5 animate-in fade-in slide-in-from-top-2
+       duration-300 ease-out" [class]="toast.backColor">
+    <div class="flex-shrink-0">
+        <svg class="h-5 w-5" [class]="toast.iconColor" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" [attr.d]="toast.iconPath" clip-rule="evenodd" />
+        </svg>
+    </div>
+    <div class="text-sm font-medium leading-5 break-words" [class]="toast.textColor">
+        {{ toast.message }}
+    </div>
+</div>

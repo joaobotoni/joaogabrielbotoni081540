@@ -1,3 +1,4 @@
+// AuthenticationService.java
 package com.botoni.backend.services.auth;
 
 import com.botoni.backend.dtos.authentication.LoginRequest;
@@ -23,17 +24,24 @@ public class AuthenticationService implements UserDetailsService {
     private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
 
-    public RegisterResponse register(RegisterRequest request) {
+    public record AuthResult<T>(T response, String refreshToken) {}
+
+    public AuthResult<RegisterResponse> register(RegisterRequest request) {
         validateEmailNotExists(request.email());
-        User newUser = save(request);
-        User savedUser = userRepository.save(newUser);
-        return buildRegisterResponse(savedUser);
+        User user = userRepository.save(buildUser(request));
+        return buildAuthResult(user, buildRegisterResponse(user));
     }
 
-    public LoginResponse login(LoginRequest request) {
-        User user = findUserByEmail(request.email());
+    public AuthResult<LoginResponse> login(LoginRequest request) {
+        User user = findByEmail(request.email());
         validatePassword(request.password(), user.getPassword());
-        return buildLoginResponse(user);
+        return buildAuthResult(user, buildLoginResponse(user));
+    }
+
+    @Override
+    @NullMarked
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return findByEmail(username);
     }
 
     private void validateEmailNotExists(String email) {
@@ -42,24 +50,18 @@ public class AuthenticationService implements UserDetailsService {
         }
     }
 
-    private void validatePassword(String rawPassword, String encodedPassword) {
-        if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
+    private void validatePassword(String raw, String encoded) {
+        if (!passwordEncoder.matches(raw, encoded)) {
             throw new AuthenticationException("Credenciais inválidas. Verifique e tente novamente.");
         }
     }
 
-    @Override
-    @NullMarked
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return findUserByEmail(username);
-    }
-
-    private User findUserByEmail(String email) {
+    private User findByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado."));
     }
 
-    private User save(RegisterRequest request) {
+    private User buildUser(RegisterRequest request) {
         return User.builder()
                 .name(request.username())
                 .email(request.email())
@@ -71,8 +73,7 @@ public class AuthenticationService implements UserDetailsService {
         return new RegisterResponse(
                 user.getName(),
                 user.getEmail(),
-                tokenService.generateAccessToken(user),
-                tokenService.generateRefreshToken(user)
+                tokenService.generateAccessToken(user)
         );
     }
 
@@ -80,8 +81,11 @@ public class AuthenticationService implements UserDetailsService {
         return new LoginResponse(
                 user.getName(),
                 user.getEmail(),
-                tokenService.generateAccessToken(user),
-                tokenService.generateRefreshToken(user)
+                tokenService.generateAccessToken(user)
         );
+    }
+
+    private <T> AuthResult<T> buildAuthResult(User user, T response) {
+        return new AuthResult<>(response, tokenService.generateRefreshToken(user));
     }
 }

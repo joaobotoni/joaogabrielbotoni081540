@@ -1,4 +1,4 @@
-import { RouterLink } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { Component, inject, signal } from '@angular/core';;
 import { RegisterRequest } from '../../domain/authentication/register-request';
 import { EditTextComponent } from '../../components/input/edit-text-component'
@@ -14,14 +14,19 @@ import { Authentication } from "../../services/authentication/authentication";
   imports: [RouterLink, EditTextComponent, ToastValidationErrorsComponent, ToastComponent],
   templateUrl: './register.html'
 })
-export class Register {
+export default class Register {
 
+  username = signal('')
   private readonly auth = inject(Authentication);
+  private readonly router = inject(Router)
+
   protected readonly data = signal<RegisterRequest>({ username: '', email: '', password: '' });
+  protected readonly feedback = this.auth.toast;
   protected readonly validators = validate(this.data);
-  protected readonly feedback = this.auth.feedback;
 
   protected onSubmit() {
-    this.auth.register(this.data());
+    this.auth.register(this.data()).subscribe({
+      next: (response) => this.router.navigate(['home', { username: response.username, email: response.email }])
+    });
   }
 }

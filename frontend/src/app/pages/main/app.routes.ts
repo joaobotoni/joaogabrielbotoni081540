@@ -1,19 +1,23 @@
 import { Routes } from '@angular/router';
-import { Register } from '../register/register';
-import { Login } from '../login/login';
-import { Home } from '../home/home';
+import { authGuard } from '../../guards/auth-guard'; // Ajuste o caminho
 
 export const routes: Routes = [
     {
-        path: "",
-        component: Register
+        path: "register",
+        loadComponent: () => import('../register/register')
     },
     {
         path: "login",
-        component: Login
+        loadComponent: () => import('../login/login')
     },
-      {
+    {
         path: "home",
-        component: Home
-    }
+        loadComponent: () => import('../home/home'),
+        canActivate: [authGuard]
+    },
+    {
+        path: "**",
+        redirectTo: "register"
+    },
+
 ];

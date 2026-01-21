@@ -32,7 +32,7 @@ public class SecurityFilter extends OncePerRequestFilter {
         String content = extractToken(request);
         String token = tokenService.validateToken(content);
         if (token != null) {
-            User user = userRepository.findByEmail(token).orElseThrow(RuntimeException::new);
+            User user = userRepository.findByEmail(token).orElse(null);
             var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
             var authentication = new UsernamePasswordAuthenticationToken(user, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);

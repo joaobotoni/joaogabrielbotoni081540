@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { ToastComponent } from '../toast/toast-component';
-import { Error } from '../../domain/ui/toast-props';
+import { Error } from '../../domain/ui/toast';
 
 
 @Component({

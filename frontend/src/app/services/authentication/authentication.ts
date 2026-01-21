@@ -1,61 +1,92 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { catchError, Observable, tap, throwError } from 'rxjs';
+import { catchError, finalize, Observable, tap, throwError } from 'rxjs';
+import { HttpService } from '../http/http-service';
 import { RegisterRequest } from '../../domain/authentication/register-request';
 import { RegisterResponse } from '../../domain/authentication/register-response';
 import { LoginRequest } from '../../domain/authentication/login-request';
 import { LoginResponse } from '../../domain/authentication/login-response';
 import { TokenResponse } from '../../domain/authentication/token-response';
-import { HttpService } from '../http/http-service';
-import { Success, Error, Toast } from '../../domain/ui/toast-props';
+import { Error, Success, Toast } from '../../domain/ui/toast';
 
 @Injectable({ providedIn: 'root' })
 export class Authentication {
   private readonly http = inject(HttpService);
+  private readonly options = { withCredentials: true };
 
-  readonly token = signal('');
-  readonly feedback = signal<Toast | null>(null);
+  readonly token = signal<string>('');
+  readonly isAuth = signal<boolean>(false);
+  readonly toast = signal<Toast | null>(null);
 
-  register(body: RegisterRequest): void {
-    this.auth<RegisterResponse>('/register', body, 'Registro realizado com sucesso!').subscribe();
+  register(body: RegisterRequest): Observable<RegisterResponse> {
+    return this.auth<RegisterResponse>('/register', body, 'Registro realizado com sucesso!');
   }
 
-  login(body: LoginRequest): void {
-    this.auth<LoginResponse>('/login', body, 'Login realizado com sucesso!').subscribe();
+  login(body: LoginRequest): Observable<LoginResponse> {
+    return this.auth<LoginResponse>('/login', body, 'Login realizado com sucesso!');
   }
 
   refresh(): Observable<TokenResponse> {
-    return this.http.put<TokenResponse>('/refresh', {}, { withCredentials: true }).pipe(
-      tap(res => this.token.set(res.token)),
-      catchError(err => this.error(err, 'Sessão expirada. Faça login novamente.'))
-    );
+    return this.http
+      .put<TokenResponse>('/refresh', {}, this.options)
+      .pipe(tap((res) => this.setToken(res.token)),
+        catchError((err) => this.handleError(err, 'Sessão expirada. Faça login novamente.'))
+      );
   }
 
-  logout(): void {
-    this.http.post('/logout', {}, { withCredentials: true }).subscribe();
-    this.feedback.set(Success('Logout realizado com sucesso!'));
-    this.clear();
+  logout(): Observable<void> {
+    return this.http
+      .post<void>('/logout', {}, this.options)
+      .pipe(tap(() => this.success('Logout realizado com sucesso!')),
+        catchError((err) => this.handleError(err)),
+        finalize(() => this.clear())
+      );
   }
 
-  private auth<T extends TokenResponse>(path: string, body: unknown, msg: string): Observable<T> {
-    return this.http.post<T>(path, body, { withCredentials: true }).pipe(
-      tap(res => this.success(res.token, msg)),
-      catchError(err => this.error(err))
-    );
+  private auth<T extends { token: string }>(
+    endpoint: string,
+    body: object,
+    message: string
+  ): Observable<T> {
+    return this.http
+      .post<T>(endpoint, body, this.options)
+      .pipe(tap((res) => this.ok(res.token, message)),
+        catchError((err) => this.handleError(err))
+      );
   }
 
-  private success(token: string, msg: string): void {
+  private ok(token: string, message: string): void {
+    this.setToken(token);
+    this.success(message);
+  }
+
+  private setToken(token: string): void {
     this.token.set(token);
-    this.feedback.set(Success(msg));
-  }
-
-  private error(err: unknown, custom?: string): Observable<never> {
-    const msg = custom || (err as any)?.error?.detail || 'Erro inesperado. Tente novamente mais tarde.';
-    this.feedback.set(Error(msg));
-    if (custom) this.clear();
-    return throwError(() => err);
+    this.isAuth.set(true);
   }
 
   private clear(): void {
     this.token.set('');
+    this.isAuth.set(false);
+  }
+
+  private success(message: string): void {
+    this.toast.set(Success(message));
+  }
+
+  private fail(message: string): void {
+    this.toast.set(Error(message));
+  }
+
+  private readonly handleError = (err: unknown, custom?: string): Observable<never> => {
+    const message = this.getMessage(err, custom);
+    this.fail(message);
+    if (custom) {
+      this.clear();
+    }
+    return throwError(() => err);
+  };
+
+  private getMessage(err: unknown, custom?: string): string {
+    return custom || (err as any)?.error?.detail || 'Erro inesperado. Tente novamente mais tarde.';
   }
 }

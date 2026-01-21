@@ -1,0 +1,134 @@
+<div class="flex bg-slate-50 text-slate-900 min-h-screen overflow-x-hidden font-sans">
+
+    <header class="lg:hidden fixed top-0 left-0 right-0 z-[70] bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <div class="flex items-center justify-between h-16 px-6">
+
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center font-bold text-white shadow-lg shadow-slate-900/20">
+                    {{getInitials(username())}}
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-slate-900 leading-tight">{{username()}}</p>
+                    <p class="text-[10px] font-semibold text-slate-500">{{email()}}</p>
+                </div>
+            </div>
+
+            <button (click)="isMenuOpen = !isMenuOpen"
+                class="h-10 w-10 rounded-xl bg-white border border-slate-200 flex flex-col items-center justify-center gap-1.5 active:scale-90 transition-all shadow-sm">
+                <span [class.rotate-45]="isMenuOpen" [class.translate-y-2]="isMenuOpen"
+                    class="h-0.5 w-5 bg-slate-600 rounded-full transition-all duration-300"></span>
+                <span [class.opacity-0]="isMenuOpen"
+                    class="h-0.5 w-5 bg-slate-600 rounded-full transition-all duration-300"></span>
+                <span [class.-rotate-45]="isMenuOpen" [class.-translate-y-2]="isMenuOpen"
+                    class="h-0.5 w-5 bg-slate-600 rounded-full transition-all duration-300"></span>
+            </button>
+        </div>
+    </header>
+
+    @if (isMenuOpen) {
+    <div (click)="isMenuOpen = false"
+        class="lg:hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[50] animate-in fade-in duration-500">
+    </div>
+    }
+
+    <aside [class.translate-x-0]="isMenuOpen" [class.translate-x-full]="!isMenuOpen"
+        class="fixed lg:sticky top-0 right-0 lg:left-0 h-screen w-72 lg:w-24 xl:w-80 bg-white border-l lg:border-l-0 lg:border-r border-slate-200/60 z-[60] transition-all duration-500 lg:translate-x-0 flex flex-col shadow-2xl lg:shadow-none">
+
+        <nav class="flex-1 flex flex-col p-4 space-y-2 pt-20 lg:pt-4">
+
+            <a href="#"
+                class="group flex items-center gap-4 h-12 px-4 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all duration-300 active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="w-5 h-5 transition-transform duration-300 group-hover:scale-110 group-hover:text-slate-900"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span
+                    class="font-bold text-sm lg:hidden xl:block tracking-wide transition-all duration-300 group-hover:translate-x-1">Início</span>
+            </a>
+
+            <a href="#"
+                class="group flex items-center gap-4 h-12 px-4 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all duration-300 active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="w-5 h-5 transition-transform duration-300 group-hover:scale-110 group-hover:text-slate-900"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span
+                    class="font-bold text-sm lg:hidden xl:block tracking-wide transition-all duration-300 group-hover:translate-x-1">Artistas</span>
+            </a>
+
+            <a href="#"
+                class="group flex items-center gap-4 h-12 px-4 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all duration-300 active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="w-5 h-5 transition-transform duration-300 group-hover:scale-110 group-hover:text-slate-900"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                </svg>
+                <span
+                    class="font-bold text-sm lg:hidden xl:block tracking-wide transition-all duration-300 group-hover:translate-x-1">Álbuns</span>
+            </a>
+
+            <div class="flex-1"></div>
+
+            <button
+                class="group flex items-center gap-4 h-12 px-4 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all duration-300 active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <button
+                    class="font-bold text-sm lg:hidden xl:block transition-all duration-300 group-hover:translate-x-1" (click)="logOut()">Sair</button>
+            </button>
+        </nav>
+
+        <div class="hidden lg:block p-4 border-t border-slate-100 bg-slate-50/30">
+            <div
+                class="flex items-center gap-3 p-2 rounded-2xl transition-all duration-500 cursor-pointer group border border-transparent hover:bg-white hover:border-slate-300 hover:shadow-xl hover:shadow-slate-900/10 hover:-translate-y-1 active:scale-95">
+                <div
+                    class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center font-bold text-white text-sm shadow-md transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-slate-900/30">
+                    {{getInitials(username())}}
+                </div>
+                <div class="lg:hidden xl:block min-w-0 transition-all duration-300 group-hover:translate-x-1">
+                    <p class="text-[14px] font-black text-slate-800 truncate">{{username()}}</p>
+                    <p class="text-[11px] text-slate-500 truncate font-semibold">{{email()}}</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 bg-white pt-16 lg:pt-0">
+        <header class="h-20 bg-white border-b border-slate-100 px-6 flex items-center sticky top-16 lg:top-0 z-30">
+            <div class="flex items-center justify-end w-full gap-3">
+                <button
+                    class="group flex items-center gap-2 h-11 px-5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-widest transition-all hover:bg-white hover:border-slate-400 hover:text-slate-900 active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path
+                            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    <span class="transition-all duration-300 group-hover:translate-x-0.5">Artista</span>
+                </button>
+
+                <button
+                    class="group relative flex items-center gap-2 h-11 px-5 rounded-xl bg-slate-900 text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-slate-900/20 hover:shadow-slate-900/40 hover:bg-slate-800 hover:-translate-y-0.5 transition-all active:scale-95 overflow-hidden">
+                    <div class="absolute inset-0 overflow-hidden rounded-xl">
+                        <div
+                            class="absolute -top-[100%] left-[50%] h-[20px] w-[200px] -translate-x-1/2 rotate-[25deg] bg-white/10 blur-xl transition-all duration-700 group-hover:top-[120%]">
+                        </div>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 relative" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span class="relative transition-all duration-300 group-hover:translate-x-0.5">Álbum</span>
+                </button>
+            </div>
+        </header>
+    </main>
+</div>

@@ -1,18 +1,14 @@
-// AuthenticationService.java
 package com.botoni.backend.services.auth;
 
-import com.botoni.backend.dtos.authentication.LoginRequest;
-import com.botoni.backend.dtos.authentication.LoginResponse;
-import com.botoni.backend.dtos.authentication.RegisterRequest;
-import com.botoni.backend.dtos.authentication.RegisterResponse;
+import com.botoni.backend.dtos.authentication.*;
 import com.botoni.backend.entities.User;
 import com.botoni.backend.infra.exceptions.AuthenticationException;
 import com.botoni.backend.repositories.UserRepository;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,71 +17,75 @@ import org.springframework.stereotype.Service;
 public class AuthenticationService implements UserDetailsService {
 
     private final UserRepository userRepository;
-    private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
+    private final TokenService tokenService;
 
-    public record AuthResult<T>(T response, String refreshToken) {}
-
-    public AuthResult<RegisterResponse> register(RegisterRequest request) {
-        validateEmailNotExists(request.email());
-        User user = userRepository.save(buildUser(request));
-        return buildAuthResult(user, buildRegisterResponse(user));
+    public AuthenticationResponse register(RegisterRequest request, HttpServletResponse response) {
+        checkEmail(request.email());
+        User user = save(buildUser(request));
+        tokenService.addCookie(response, tokenService.generateRefreshToken(user));
+        return new AuthenticationResponse(user.getName(), user.getEmail());
     }
 
-    public AuthResult<LoginResponse> login(LoginRequest request) {
+    public AuthenticationResponse login(LoginRequest request, HttpServletResponse response) {
         User user = findByEmail(request.email());
-        validatePassword(request.password(), user.getPassword());
-        return buildAuthResult(user, buildLoginResponse(user));
+        checkPassword(request.password(), user);
+        tokenService.addCookie(response, tokenService.generateRefreshToken(user));
+        return new AuthenticationResponse(user.getName(), user.getEmail());
     }
 
     @Override
     @NullMarked
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username) {
         return findByEmail(username);
     }
 
-    private void validateEmailNotExists(String email) {
-        if (userRepository.findByEmail(email).isPresent()) {
-            throw new AuthenticationException("Este e-mail já está cadastrado. Por favor, faça login ou use outro e-mail.");
+    private void checkEmail(String email) {
+        if (isExists(email)) {
+            throwEmailExists();
         }
     }
 
-    private void validatePassword(String raw, String encoded) {
-        if (!passwordEncoder.matches(raw, encoded)) {
-            throw new AuthenticationException("Credenciais inválidas. Verifique e tente novamente.");
+    private void checkPassword(String raw, User user) {
+        if (!matches(raw, user.getPassword())) {
+            throwInvalid();
         }
+    }
+
+    private boolean isExists(String email) {
+        return userRepository.findByEmail(email).isPresent();
     }
 
     private User findByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado."));
+                .orElseThrow(this::throwInvalid);
+    }
+
+    private User save(User user) {
+        return userRepository.save(user);
     }
 
     private User buildUser(RegisterRequest request) {
         return User.builder()
                 .name(request.username())
                 .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
+                .password(encode(request.password()))
                 .build();
     }
 
-    private RegisterResponse buildRegisterResponse(User user) {
-        return new RegisterResponse(
-                user.getName(),
-                user.getEmail(),
-                tokenService.generateAccessToken(user)
-        );
+    private String encode(String raw) {
+        return passwordEncoder.encode(raw);
     }
 
-    private LoginResponse buildLoginResponse(User user) {
-        return new LoginResponse(
-                user.getName(),
-                user.getEmail(),
-                tokenService.generateAccessToken(user)
-        );
+    private boolean matches(String raw, String encoded) {
+        return passwordEncoder.matches(raw, encoded);
     }
 
-    private <T> AuthResult<T> buildAuthResult(User user, T response) {
-        return new AuthResult<>(response, tokenService.generateRefreshToken(user));
+    private AuthenticationException throwInvalid() {
+        throw new AuthenticationException("Credenciais inválidas.");
+    }
+
+    private void throwEmailExists() {
+        throw new AuthenticationException("E-mail já cadastrado.");
     }
 }

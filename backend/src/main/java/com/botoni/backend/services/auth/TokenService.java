@@ -1,11 +1,10 @@
-// TokenService.java
 package com.botoni.backend.services.auth;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.botoni.backend.dtos.token.TokenPair;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.botoni.backend.dtos.token.TokenResponse;
 import com.botoni.backend.entities.User;
 import com.botoni.backend.infra.exceptions.AuthenticationException;
@@ -30,13 +29,12 @@ public class TokenService {
     private String issuer;
 
     @Value("${jwt.expiration.access}")
-    private Long accessExpiration;
+    private Integer accessExpiration;
 
     @Value("${jwt.expiration.refresh}")
-    private Long refreshExpiration;
+    private Integer refreshExpiration;
 
     private final UserRepository userRepository;
-
 
     public String generateAccessToken(User user) {
         return createToken(user, accessExpiration);
@@ -48,74 +46,114 @@ public class TokenService {
 
     public String validateToken(String token) {
         try {
-            return JWT.require(getAlgorithm())
-                    .withIssuer(issuer)
-                    .build()
-                    .verify(token)
-                    .getSubject();
+            return extractEmail(token);
         } catch (JWTVerificationException e) {
             return null;
         }
     }
 
-    public TokenPair refreshToken(String token) {
+    public TokenResponse refresh(String token, HttpServletResponse response) {
         User user = extractUser(token);
-        TokenResponse response = new TokenResponse(generateAccessToken(user));
-        String refreshToken = generateRefreshToken(user);
-        return new TokenPair(response, refreshToken);
+        addCookie(response, generateRefreshToken(user));
+        return new TokenResponse(generateAccessToken(user));
     }
 
-    public void addRefreshTokenToCookie(HttpServletResponse response, String token) {
-        Cookie cookie = createCookie(token, refreshExpiration.intValue());
-        response.addCookie(cookie);
+    public void logout(HttpServletResponse response) {
+        removeCookie(response);
     }
 
-    public void clearRefreshTokenCookie(HttpServletResponse response) {
-        Cookie cookie = createCookie("", 0);
-        response.addCookie(cookie);
+    public void addCookie(HttpServletResponse response, String token) {
+        response.addCookie(buildCookie(token));
+    }
+
+    public void removeCookie(HttpServletResponse response) {
+        response.addCookie(buildExpiredCookie());
+    }
+
+    private String createToken(User user, long exp) {
+        try {
+            return buildJwt(user, exp);
+        } catch (JWTCreationException e) {
+            throwCreationError();
+            return null;
+        }
+    }
+
+    private String buildJwt(User user, long exp) {
+        return JWT.create()
+                .withIssuer(issuer)
+                .withSubject(normalizeEmail(user.getEmail()))
+                .withExpiresAt(expirationAt(exp))
+                .sign(getAlgorithm());
+    }
+
+    private String extractEmail(String token) {
+        return verifyToken(token).getSubject();
+    }
+
+    private DecodedJWT verifyToken(String token) {
+        return JWT.require(getAlgorithm())
+                .withIssuer(issuer)
+                .build()
+                .verify(token);
     }
 
     private User extractUser(String token) {
         try {
-            String email = JWT.require(getAlgorithm())
-                    .withIssuer(issuer)
-                    .build()
-                    .verify(token)
-                    .getSubject();
-
-            return userRepository.findByEmail(email)
-                    .orElseThrow(() -> new AuthenticationException("Usuário não encontrado."));
+            return findUser(extractEmail(token));
         } catch (JWTVerificationException e) {
-            throw new TokenException("Token inválido ou expirado.");
+            throwInvalidToken();
+            return null;
         }
     }
 
-    private String createToken(User user, long expirationSeconds) {
-        try {
-            return JWT.create()
-                    .withIssuer(issuer)
-                    .withSubject(user.getEmail().toLowerCase().trim())
-                    .withExpiresAt(getExpirationInstant(expirationSeconds))
-                    .sign(getAlgorithm());
-        } catch (JWTCreationException e) {
-            throw new TokenException("Erro ao gerar token.");
-        }
+    private User findUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(this::throwUserNotFound);
     }
 
-    private Cookie createCookie(String value, int maxAge) {
+    private Cookie buildCookie(String value) {
+        return createCookie(value, refreshExpiration);
+    }
+
+    private Cookie buildExpiredCookie() {
+        return createCookie("", 0);
+    }
+
+    private Cookie createCookie(String value, Integer max) {
         Cookie cookie = new Cookie("refreshToken", value);
+        configureSecurity(cookie);
+        cookie.setMaxAge(max);
+        return cookie;
+    }
+
+    private void configureSecurity(Cookie cookie) {
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
         cookie.setPath("/");
-        cookie.setMaxAge(maxAge);
-        return cookie;
     }
 
     private Algorithm getAlgorithm() {
         return Algorithm.HMAC256(secret);
     }
 
-    private Instant getExpirationInstant(long seconds) {
+    private Instant expirationAt(long seconds) {
         return Instant.now().plusSeconds(seconds);
+    }
+
+    private String normalizeEmail(String email) {
+        return email.toLowerCase().trim();
+    }
+
+    private void throwCreationError() {
+        throw new TokenException("Erro ao gerar token.");
+    }
+
+    private void throwInvalidToken() {
+        throw new TokenException("Token inválido ou expirado.");
+    }
+
+    private AuthenticationException throwUserNotFound() {
+        throw new AuthenticationException("Usuário não encontrado.");
     }
 }

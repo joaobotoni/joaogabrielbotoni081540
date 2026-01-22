@@ -21,7 +21,6 @@ import java.time.Instant;
 @Service
 @RequiredArgsConstructor
 public class TokenService {
-
     @Value("${jwt.secret}")
     private String secret;
 
@@ -66,16 +65,11 @@ public class TokenService {
         response.addCookie(buildCookie(token));
     }
 
-    public void removeCookie(HttpServletResponse response) {
-        response.addCookie(buildExpiredCookie());
-    }
-
     private String createToken(User user, long exp) {
         try {
             return buildJwt(user, exp);
         } catch (JWTCreationException e) {
-            throwCreationError();
-            return null;
+            throw tokenCreationError();
         }
     }
 
@@ -102,14 +96,13 @@ public class TokenService {
         try {
             return findUser(extractEmail(token));
         } catch (JWTVerificationException e) {
-            throwInvalidToken();
-            return null;
+            throw invalidToken();
         }
     }
 
     private User findUser(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(this::throwUserNotFound);
+                .orElseThrow(this::userNotFound);
     }
 
     private Cookie buildCookie(String value) {
@@ -133,6 +126,10 @@ public class TokenService {
         cookie.setPath("/");
     }
 
+    private void removeCookie(HttpServletResponse response) {
+        response.addCookie(buildExpiredCookie());
+    }
+
     private Algorithm getAlgorithm() {
         return Algorithm.HMAC256(secret);
     }
@@ -145,15 +142,15 @@ public class TokenService {
         return email.toLowerCase().trim();
     }
 
-    private void throwCreationError() {
-        throw new TokenException("Erro ao gerar token.");
+    private TokenException tokenCreationError() {
+        return new TokenException("Erro ao gerar token.");
     }
 
-    private void throwInvalidToken() {
-        throw new TokenException("Token inválido ou expirado.");
+    private TokenException invalidToken() {
+        return new TokenException("Token inválido ou expirado.");
     }
 
-    private AuthenticationException throwUserNotFound() {
-        throw new AuthenticationException("Usuário não encontrado.");
+    private AuthenticationException userNotFound() {
+        return new AuthenticationException("Usuário não encontrado.");
     }
 }

@@ -9,53 +9,97 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Objects;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class ImageStorageService {
-
-    private static final String IMAGE_CONTENT_TYPE_PREFIX = "image/";
+    private static final String IMAGE_PREFIX = "image/";
     @Value("${minio.bucket-name}")
-    private String bucketName;
+    private String bucket;
 
-    private final MinioClient minioClient;
+    private final MinioClient minio;
 
     public ImageUploadResponse upload(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new ImageStorageException("O arquivo não pode ser nulo ou vazio!");
-        }
+        validate(file);
+        String name = uniqueName(file.getOriginalFilename());
+        save(file, name);
+        return new ImageUploadResponse(bucket, name);
+    }
 
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith(IMAGE_CONTENT_TYPE_PREFIX)) {
-            throw new ImageStorageException("O arquivo precisa ser uma imagem!");
-        }
+    private void validate(MultipartFile file) {
+        checkNotEmpty(file);
+        checkIsImage(file.getContentType());
+        checkFileName(file.getOriginalFilename());
+    }
 
-        String fileName = file.getOriginalFilename();
-        if (fileName == null || fileName.isBlank()) {
-            throw new ImageStorageException("Nome do arquivo inválido!");
-        }
+    private void checkNotEmpty(MultipartFile file) {
+        if (isEmpty(file)) throw emptyFile();
+    }
 
-        String uniqueFileName = generateUniqueFileName(Objects.requireNonNull(file.getOriginalFilename()));
+    private void checkIsImage(String type) {
+        if (!isImage(type)) throw notImage();
+    }
+
+    private void checkFileName(String name) {
+        if (isInvalidName(name)) throw invalidName();
+    }
+
+    private boolean isEmpty(MultipartFile file) {
+        return file == null || file.isEmpty();
+    }
+
+    private boolean isImage(String type) {
+        return type != null && type.startsWith(IMAGE_PREFIX);
+    }
+
+    private boolean isInvalidName(String name) {
+        return name == null || name.isBlank();
+    }
+
+    private void save(MultipartFile file, String name) {
         try {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .contentType(file.getContentType())
-                            .object(uniqueFileName)
-                            .stream(file.getInputStream(), file.getSize(), -1)
-                            .build()
-            );
-            return new ImageUploadResponse(bucketName, uniqueFileName);
+            minio.putObject(buildPutObjectArgs(file, name));
         } catch (Exception e) {
-            throw new ImageStorageException("Erro ao fazer upload da imagem.", e);
+            throw uploadError(e);
         }
     }
 
-    private String generateUniqueFileName(String originalFileName) {
-        int lastDotIndex = originalFileName.lastIndexOf('.');
-        String extension = lastDotIndex > 0 ? originalFileName.substring(lastDotIndex) : "";
-        return UUID.randomUUID() + extension;
+    private PutObjectArgs buildPutObjectArgs(MultipartFile file, String name) {
+        try {
+            return PutObjectArgs.builder()
+                    .bucket(bucket)
+                    .contentType(file.getContentType())
+                    .object(name)
+                    .stream(file.getInputStream(), file.getSize(), -1)
+                    .build();
+        } catch (Exception e) {
+            throw uploadError(e);
+        }
+    }
+
+    private String uniqueName(String original) {
+        return UUID.randomUUID() + extension(original);
+    }
+
+    private String extension(String fileName) {
+        int dot = fileName.lastIndexOf('.');
+        return dot > 0 ? fileName.substring(dot) : "";
+    }
+
+    private ImageStorageException emptyFile() {
+        return new ImageStorageException("Arquivo vazio");
+    }
+
+    private ImageStorageException notImage() {
+        return new ImageStorageException("Arquivo não é imagem");
+    }
+
+    private ImageStorageException invalidName() {
+        return new ImageStorageException("Nome inválido");
+    }
+
+    private ImageStorageException uploadError(Exception e) {
+        return new ImageStorageException("Erro no upload", e);
     }
 }

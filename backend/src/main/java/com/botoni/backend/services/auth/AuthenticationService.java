@@ -21,17 +21,18 @@ public class AuthenticationService implements UserDetailsService {
     private final TokenService tokenService;
 
     public AuthenticationResponse register(RegisterRequest request, HttpServletResponse response) {
+        checkUsername(request.username());
         checkEmail(request.email());
         User user = save(buildUser(request));
         tokenService.addCookie(response, tokenService.generateRefreshToken(user));
-        return new AuthenticationResponse(user.getName(), user.getEmail());
+        return new AuthenticationResponse(user.getUsername(), user.getEmail());
     }
 
     public AuthenticationResponse login(LoginRequest request, HttpServletResponse response) {
         User user = findByEmail(request.email());
         checkPassword(request.password(), user);
         tokenService.addCookie(response, tokenService.generateRefreshToken(user));
-        return new AuthenticationResponse(user.getName(), user.getEmail());
+        return new AuthenticationResponse(user.getUsername(), user.getEmail());
     }
 
     @Override
@@ -41,24 +42,27 @@ public class AuthenticationService implements UserDetailsService {
     }
 
     private void checkEmail(String email) {
-        if (isExists(email)) {
-            throwEmailExists();
-        }
+        if (isExistsEmail(email)) throw emailExists();
     }
 
     private void checkPassword(String raw, User user) {
-        if (!matches(raw, user.getPassword())) {
-            throwInvalid();
-        }
+        if (!matches(raw, user.getPassword())) throw invalidCredentials();
     }
 
-    private boolean isExists(String email) {
+    private void checkUsername(String username) {
+        if (isExistsUsername(username)) throw usernameExists();
+    }
+
+    private boolean isExistsEmail(String email) {
         return userRepository.findByEmail(email).isPresent();
+    }
+    private boolean isExistsUsername(String username) {
+        return userRepository.findByUsername(username).isPresent();
     }
 
     private User findByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(this::throwInvalid);
+                .orElseThrow(this::invalidCredentials);
     }
 
     private User save(User user) {
@@ -67,7 +71,7 @@ public class AuthenticationService implements UserDetailsService {
 
     private User buildUser(RegisterRequest request) {
         return User.builder()
-                .name(request.username())
+                .username(request.username())
                 .email(request.email())
                 .password(encode(request.password()))
                 .build();
@@ -81,11 +85,15 @@ public class AuthenticationService implements UserDetailsService {
         return passwordEncoder.matches(raw, encoded);
     }
 
-    private AuthenticationException throwInvalid() {
-        throw new AuthenticationException("Credenciais inválidas.");
+    private AuthenticationException invalidCredentials() {
+        return new AuthenticationException("Credenciais inválidas.");
     }
 
-    private void throwEmailExists() {
-        throw new AuthenticationException("E-mail já cadastrado.");
+    private AuthenticationException emailExists() {
+        return new AuthenticationException("E-mail já cadastrado.");
+    }
+
+    private AuthenticationException usernameExists() {
+        return new AuthenticationException("Nome de usuário já cadastrado.");
     }
 }

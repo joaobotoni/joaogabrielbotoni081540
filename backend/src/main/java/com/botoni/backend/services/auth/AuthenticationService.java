@@ -21,18 +21,17 @@ public class AuthenticationService implements UserDetailsService {
     private final TokenService tokenService;
 
     public AuthenticationResponse register(RegisterRequest request, HttpServletResponse response) {
-        checkUsername(request.username());
-        checkEmail(request.email());
-        User user = save(buildUser(request));
-        tokenService.addCookie(response, tokenService.generateRefreshToken(user));
-        return new AuthenticationResponse(user.getUsername(), user.getEmail());
+        validateUsername(request.username());
+        validateEmail(request.email());
+        User user = createUser(request);
+        User saved = saveUser(user);
+        return buildResponse(saved, response);
     }
 
     public AuthenticationResponse login(LoginRequest request, HttpServletResponse response) {
         User user = findByEmail(request.email());
-        checkPassword(request.password(), user);
-        tokenService.addCookie(response, tokenService.generateRefreshToken(user));
-        return new AuthenticationResponse(user.getUsername(), user.getEmail());
+        validatePassword(request.password(), user);
+        return buildResponse(user, response);
     }
 
     @Override
@@ -41,22 +40,37 @@ public class AuthenticationService implements UserDetailsService {
         return findByEmail(username);
     }
 
-    private void checkEmail(String email) {
-        if (isExistsEmail(email)) throw emailExists();
+    private AuthenticationResponse buildResponse(User user, HttpServletResponse response) {
+        String accessToken = tokenService.generateAccessToken(user);
+        String refreshToken = tokenService.generateRefreshToken(user);
+        tokenService.attachRefreshTokenCookie(response, refreshToken);
+        response.setHeader("Authorization", "Bearer " + accessToken);
+        return new AuthenticationResponse(user.getUsername(), user.getEmail());
     }
 
-    private void checkPassword(String raw, User user) {
-        if (!matches(raw, user.getPassword())) throw invalidCredentials();
+    private void validateUsername(String username) {
+        if (usernameExists(username)) {
+            throw usernameExists();
+        }
     }
 
-    private void checkUsername(String username) {
-        if (isExistsUsername(username)) throw usernameExists();
+    private void validateEmail(String email) {
+        if (emailExists(email)) {
+            throw emailExists();
+        }
     }
 
-    private boolean isExistsEmail(String email) {
+    private void validatePassword(String raw, User user) {
+        if (!passwordMatches(raw, user.getPassword())) {
+            throw invalidCredentials();
+        }
+    }
+
+    private boolean emailExists(String email) {
         return userRepository.findByEmail(email).isPresent();
     }
-    private boolean isExistsUsername(String username) {
+
+    private boolean usernameExists(String username) {
         return userRepository.findByUsername(username).isPresent();
     }
 
@@ -65,35 +79,31 @@ public class AuthenticationService implements UserDetailsService {
                 .orElseThrow(this::invalidCredentials);
     }
 
-    private User save(User user) {
+    private User saveUser(User user) {
         return userRepository.save(user);
     }
 
-    private User buildUser(RegisterRequest request) {
+    private User createUser(RegisterRequest request) {
         return User.builder()
                 .username(request.username())
                 .email(request.email())
-                .password(encode(request.password()))
+                .password(encodePassword(request.password()))
                 .build();
     }
 
-    private String encode(String raw) {
+    private String encodePassword(String raw) {
         return passwordEncoder.encode(raw);
     }
 
-    private boolean matches(String raw, String encoded) {
+    private boolean passwordMatches(String raw, String encoded) {
         return passwordEncoder.matches(raw, encoded);
     }
 
-    private AuthenticationException invalidCredentials() {
-        return new AuthenticationException("Credenciais inválidas.");
-    }
+    private AuthenticationException invalidCredentials() {return new AuthenticationException("Credenciais inválidas.");}
 
     private AuthenticationException emailExists() {
         return new AuthenticationException("E-mail já cadastrado.");
     }
 
-    private AuthenticationException usernameExists() {
-        return new AuthenticationException("Nome de usuário já cadastrado.");
-    }
+    private AuthenticationException usernameExists() {return new AuthenticationException("Nome de usuário já cadastrado.");}
 }

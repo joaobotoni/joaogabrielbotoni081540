@@ -1,12 +1,14 @@
 package com.botoni.backend.controllers;
 
-import com.botoni.backend.dtos.authentication.*;
-import com.botoni.backend.dtos.token.TokenResponse;
+import com.botoni.backend.dtos.authentication.AuthenticationResponse;
+import com.botoni.backend.dtos.authentication.LoginRequest;
+import com.botoni.backend.dtos.authentication.RegisterRequest;
 import com.botoni.backend.services.auth.AuthenticationService;
 import com.botoni.backend.services.auth.TokenService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,8 +30,10 @@ public class AuthenticationController {
     }
 
     @PutMapping("/refresh")
-    public ResponseEntity<TokenResponse> refresh(@CookieValue("refreshToken") String token, HttpServletResponse response) {
-        return ResponseEntity.ok(tokenService.refresh(token, response));
+    public ResponseEntity<Void> refresh(@CookieValue("refreshToken") String token, HttpServletResponse response) {
+        if(token == null) return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        tokenService.refresh(token, response);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/logout")

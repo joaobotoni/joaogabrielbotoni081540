@@ -19,42 +19,11 @@ public class ImageStorageService {
     private String bucket;
 
     private final MinioClient minio;
-
     public ImageUploadResponse upload(MultipartFile file) {
         validate(file);
         String name = uniqueName(file.getOriginalFilename());
         save(file, name);
         return new ImageUploadResponse(bucket, name);
-    }
-
-    private void validate(MultipartFile file) {
-        checkNotEmpty(file);
-        checkIsImage(file.getContentType());
-        checkFileName(file.getOriginalFilename());
-    }
-
-    private void checkNotEmpty(MultipartFile file) {
-        if (isEmpty(file)) throw emptyFile();
-    }
-
-    private void checkIsImage(String type) {
-        if (!isImage(type)) throw notImage();
-    }
-
-    private void checkFileName(String name) {
-        if (isInvalidName(name)) throw invalidName();
-    }
-
-    private boolean isEmpty(MultipartFile file) {
-        return file == null || file.isEmpty();
-    }
-
-    private boolean isImage(String type) {
-        return type != null && type.startsWith(IMAGE_PREFIX);
-    }
-
-    private boolean isInvalidName(String name) {
-        return name == null || name.isBlank();
     }
 
     private void save(MultipartFile file, String name) {
@@ -85,6 +54,36 @@ public class ImageStorageService {
     private String extension(String fileName) {
         int dot = fileName.lastIndexOf('.');
         return dot > 0 ? fileName.substring(dot) : "";
+    }
+
+    private void validate(MultipartFile file) {
+        checkNotEmpty(file);
+        checkIsImage(file.getContentType());
+        checkFileName(file.getOriginalFilename());
+    }
+
+    private void checkNotEmpty(MultipartFile file) {
+        if (isEmpty(file)) throw emptyFile();
+    }
+
+    private void checkIsImage(String type) {
+        if (!isImage(type)) throw notImage();
+    }
+
+    private void checkFileName(String name) {
+        if (isInvalidName(name)) throw invalidName();
+    }
+
+    private boolean isEmpty(MultipartFile file) {
+        return file == null || file.isEmpty();
+    }
+
+    private boolean isImage(String type) {
+        return type != null && type.startsWith(IMAGE_PREFIX);
+    }
+
+    private boolean isInvalidName(String name) {
+        return name == null || name.isBlank();
     }
 
     private ImageStorageException emptyFile() {

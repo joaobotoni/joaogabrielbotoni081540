@@ -20,9 +20,12 @@ import java.time.Instant;
 @Service
 @RequiredArgsConstructor
 public class TokenService {
-
-    private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
-
+    public static final String COOKIE_NAME = "refresh";
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String COOKIE_PATH = "/";
+    private static final String SAME_SITE_ATTRIBUTE = "SameSite";
+    private static final String SAME_SITE_VALUE = "Strict";
     @Value("${jwt.secret}")
     private String secret;
 
@@ -30,134 +33,146 @@ public class TokenService {
     private String issuer;
 
     @Value("${jwt.expiration.access}")
-    private Integer accessTokenExpirationInSeconds;
+    private Integer access;
 
     @Value("${jwt.expiration.refresh}")
-    private Integer refreshTokenExpirationInSeconds;
+    private Integer refresh;
 
     private final UserRepository userRepository;
 
     public String generateAccessToken(User user) {
-        return createToken(user, accessTokenExpirationInSeconds);
+        validateUser(user);
+        return createToken(user, access);
     }
 
     public String generateRefreshToken(User user) {
-        return createToken(user, refreshTokenExpirationInSeconds);
+        validateUser(user);
+        return createToken(user, refresh);
     }
 
     public String validateToken(String token) {
         try {
-            return extractEmailFromToken(token);
+            return getSubject(token);
         } catch (JWTVerificationException e) {
             return null;
         }
     }
 
     public void refresh(String token, HttpServletResponse response) {
-        if(token == null) throw throwInvalidTokenException();
-        User user = extractUserFromToken(token);
+        validatePresentToken(token);
+        User user = extractUserPayload(token);
         String newAccessToken = generateAccessToken(user);
         String newRefreshToken = generateRefreshToken(user);
-        attachRefreshTokenCookie(response, newRefreshToken);
-        response.setHeader("Authorization", "Bearer " + newAccessToken);
+        addCookie(response, newRefreshToken);
+        response.setHeader(AUTHORIZATION_HEADER, BEARER_PREFIX + newAccessToken);
     }
 
     public void logout(HttpServletResponse response) {
-        clearRefreshTokenCookie(response);
+        clearCookie(response);
     }
 
-    public void attachRefreshTokenCookie(HttpServletResponse response, String token) {
-        response.addCookie(buildRefreshTokenCookie(token));
+    public void addCookie(HttpServletResponse response, String token) {
+        validatePresentToken(token);
+        response.addCookie(buildCookie(token));
     }
 
     private String createToken(User user, long expirationInSeconds) {
         try {
-            return buildJwtToken(user, expirationInSeconds);
+            return buildJwt(user, expirationInSeconds);
         } catch (JWTCreationException e) {
             throw throwTokenCreationException();
         }
     }
 
-    private String buildJwtToken(User user, long expirationInSeconds) {
+    private String buildJwt(User user, long seconds) {
         return JWT.create()
                 .withIssuer(issuer)
-                .withSubject(normalizeEmail(user.getEmail()))
-                .withExpiresAt(calculateExpirationDate(expirationInSeconds))
+                .withSubject(normalize(user.getEmail()))
+                .withExpiresAt(expiration(seconds))
                 .sign(getAlgorithm());
     }
 
-    private String extractEmailFromToken(String token) {
-        return verifyAndDecodeToken(token).getSubject();
+    private String getSubject(String token) {
+        return decode(token).getSubject();
     }
 
-    private DecodedJWT verifyAndDecodeToken(String token) {
+    private DecodedJWT decode(String token) {
         return JWT.require(getAlgorithm())
                 .withIssuer(issuer)
                 .build()
                 .verify(token);
     }
 
-    private User extractUserFromToken(String token) {
+    private User extractUserPayload(String token) {
         try {
-            String email = extractEmailFromToken(token);
-            return findUserByEmail(email);
+            String email = getSubject(token);
+            return findByEmail(email);
         } catch (JWTVerificationException e) {
-            throw throwInvalidTokenException();
+            throw throwAuthenticationException();
         }
     }
 
-    private User findUserByEmail(String email) {
+    private User findByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(this::throwUserNotFoundException);
+                .orElseThrow(this::throwAuthenticationException);
     }
 
-    private Cookie buildRefreshTokenCookie(String value) {
-        return createCookie(value, refreshTokenExpirationInSeconds);
+    private Cookie buildCookie(String value) {
+        return createCookie(value, refresh);
     }
 
-    private Cookie buildExpiredCookie() {
+    private Cookie buildExpired() {
         return createCookie("", 0);
     }
 
     private Cookie createCookie(String value, Integer maxAgeInSeconds) {
-        Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, value);
-        applyCookieSecuritySettings(cookie);
+        Cookie cookie = new Cookie(COOKIE_NAME, value);
+        secure(cookie);
         cookie.setMaxAge(maxAgeInSeconds);
         return cookie;
     }
 
-    private void applyCookieSecuritySettings(Cookie cookie) {
+    private void secure(Cookie cookie) {
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setAttribute("SameSite", "Strict");
+        cookie.setPath(COOKIE_PATH);
+        cookie.setAttribute(SAME_SITE_ATTRIBUTE, SAME_SITE_VALUE);
     }
 
-    private void clearRefreshTokenCookie(HttpServletResponse response) {
-        response.addCookie(buildExpiredCookie());
+    private void clearCookie(HttpServletResponse response) {
+        response.addCookie(buildExpired());
     }
 
     private Algorithm getAlgorithm() {
         return Algorithm.HMAC256(secret);
     }
 
-    private Instant calculateExpirationDate(long seconds) {
+    private Instant expiration(long seconds) {
         return Instant.now().plusSeconds(seconds);
     }
 
-    private String normalizeEmail(String email) {
+    private String normalize(String email) {
         return email.toLowerCase().trim();
     }
 
+    private void validateUser(User user) {
+        if (user == null) throw throwInvalidDataException();
+        if (user.getEmail() == null || user.getEmail().isBlank()) throw throwInvalidDataException();
+    }
+
+    private void validatePresentToken(String token) {
+        if (token == null || token.isBlank()) throw throwAuthenticationException();
+    }
+
     private TokenException throwTokenCreationException() {
-        return new TokenException("Erro ao gerar token.");
+        return new TokenException("Erro ao processar solicitação.");
     }
 
-    private TokenException throwInvalidTokenException() {
-        return new TokenException("Token inválido ou expirado.");
+    private AuthenticationException throwAuthenticationException() {
+        return new AuthenticationException("Falha na autenticação. Verifique suas credenciais.");
     }
 
-    private AuthenticationException throwUserNotFoundException() {
-        return new AuthenticationException("Usuário não encontrado.");
+    private IllegalArgumentException throwInvalidDataException() {
+        return new IllegalArgumentException("Dados inválidos fornecidos.");
     }
 }

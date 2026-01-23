@@ -23,15 +23,43 @@ public class AuthenticationService implements UserDetailsService {
     public AuthenticationResponse register(RegisterRequest request, HttpServletResponse response) {
         validateUsername(request.username());
         validateEmail(request.email());
-        User user = createUser(request);
-        User saved = saveUser(user);
-        return buildResponse(saved, response);
+        User user = create(request);
+        User saved = save(user);
+        return response(saved, response);
     }
 
     public AuthenticationResponse login(LoginRequest request, HttpServletResponse response) {
         User user = findByEmail(request.email());
         validatePassword(request.password(), user);
-        return buildResponse(user, response);
+        return response(user, response);
+    }
+
+    private AuthenticationResponse response(User user, HttpServletResponse response) {
+        String accessToken = tokenService.generateAccessToken(user);
+        String refreshToken = tokenService.generateRefreshToken(user);
+        tokenService.addCookie(response, refreshToken);
+        response.setHeader("Authorization", "Bearer " + accessToken);
+        return new AuthenticationResponse(user.getName(), user.getEmail());
+    }
+
+    private void validateUsername(String username) {
+        if (checkUsername(username)) throw usernameExists();
+    }
+
+    private void validateEmail(String email) {
+        if (checkEmail(email)) throw emailExists();
+    }
+
+    private void validatePassword(String raw, User user) {
+        if (!matches(raw, user.getPassword())) throw invalidCredentials();
+    }
+
+    private boolean checkEmail(String email) {
+        return userRepository.findByEmail(email).isPresent();
+    }
+
+    private boolean checkUsername(String username) {
+        return userRepository.findByUsername(username).isPresent();
     }
 
     @Override
@@ -40,70 +68,39 @@ public class AuthenticationService implements UserDetailsService {
         return findByEmail(username);
     }
 
-    private AuthenticationResponse buildResponse(User user, HttpServletResponse response) {
-        String accessToken = tokenService.generateAccessToken(user);
-        String refreshToken = tokenService.generateRefreshToken(user);
-        tokenService.attachRefreshTokenCookie(response, refreshToken);
-        response.setHeader("Authorization", "Bearer " + accessToken);
-        return new AuthenticationResponse(user.getUsername(), user.getEmail());
-    }
-
-    private void validateUsername(String username) {
-        if (usernameExists(username)) {
-            throw usernameExists();
-        }
-    }
-
-    private void validateEmail(String email) {
-        if (emailExists(email)) {
-            throw emailExists();
-        }
-    }
-
-    private void validatePassword(String raw, User user) {
-        if (!passwordMatches(raw, user.getPassword())) {
-            throw invalidCredentials();
-        }
-    }
-
-    private boolean emailExists(String email) {
-        return userRepository.findByEmail(email).isPresent();
-    }
-
-    private boolean usernameExists(String username) {
-        return userRepository.findByUsername(username).isPresent();
-    }
-
     private User findByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(this::invalidCredentials);
+        return userRepository.findByEmail(email).orElseThrow(this::invalidCredentials);
     }
 
-    private User saveUser(User user) {
-        return userRepository.save(user);
-    }
-
-    private User createUser(RegisterRequest request) {
+    private User create(RegisterRequest request) {
         return User.builder()
                 .username(request.username())
                 .email(request.email())
-                .password(encodePassword(request.password()))
+                .password(encode(request.password()))
                 .build();
     }
 
-    private String encodePassword(String raw) {
+    private User save(User user) {
+        return userRepository.save(user);
+    }
+
+    private String encode(String raw) {
         return passwordEncoder.encode(raw);
     }
 
-    private boolean passwordMatches(String raw, String encoded) {
+    private boolean matches(String raw, String encoded) {
         return passwordEncoder.matches(raw, encoded);
     }
 
-    private AuthenticationException invalidCredentials() {return new AuthenticationException("Credenciais inválidas.");}
+    private AuthenticationException invalidCredentials() {
+        return new AuthenticationException("Credenciais inválidas.");
+    }
 
     private AuthenticationException emailExists() {
         return new AuthenticationException("E-mail já cadastrado.");
     }
 
-    private AuthenticationException usernameExists() {return new AuthenticationException("Nome de usuário já cadastrado.");}
+    private AuthenticationException usernameExists() {
+        return new AuthenticationException("Nome de usuário já cadastrado.");
+    }
 }

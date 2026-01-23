@@ -1,10 +1,10 @@
 package com.botoni.backend.configuration.authentication;
 
-
 import com.botoni.backend.entities.User;
 import com.botoni.backend.repositories.UserRepository;
 import com.botoni.backend.services.auth.TokenService;
-import jakarta.servlet.*;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,14 +29,21 @@ public class SecurityFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+
         String content = extractToken(request);
-        String token = tokenService.validateToken(content);
-        if (token != null) {
-            User user = userRepository.findByEmail(token).orElse(null);
-            var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
-            var authentication = new UsernamePasswordAuthenticationToken(user, null, authorities);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        if (content != null) {
+            String email = tokenService.validateToken(content);
+            if (email != null) {
+                User user = userRepository.findByEmail(email).orElse(null);
+                if (user != null) {
+                    var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+                    var authentication = new UsernamePasswordAuthenticationToken(user, null, authorities);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            }
         }
+
         filterChain.doFilter(request, response);
     }
 

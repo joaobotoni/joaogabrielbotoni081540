@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { Toast } from '../../../shared/domain/ui/toast';
 
 @Component({
-     selector: 'app-shared-toast',
+     selector: 'app-toast',
      imports: [CommonModule],
      templateUrl: "./toast.html",
 })

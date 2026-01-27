@@ -8,7 +8,7 @@ import { AuthenticationResponse } from '../presentation/domain/authentication.re
 import { HttpOptions } from '../../../core/http/http.options';
 
 @Injectable({ providedIn: 'root' })
-export class AuthenticationApiService {
+export class AuthenticationService {
 
   private readonly http = inject(CoreHttpService);
 

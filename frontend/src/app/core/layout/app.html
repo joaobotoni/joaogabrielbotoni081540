@@ -1,1 +1,7 @@
+@if (feedback.toast()) {
+  <div class="fixed bottom-4 right-4 left-4 md:left-auto z-[100] md:w-96 cursor-pointer"
+       (click)="feedback.clear()">
+    <app-toast [toast]="feedback.toast()!"></app-toast>
+  </div>
+}
 <router-outlet />

@@ -39,7 +39,7 @@ public class AuthenticationService implements UserDetailsService {
         String refreshToken = tokenService.generateRefreshToken(user);
         tokenService.addCookie(response, refreshToken);
         response.setHeader("Authorization", "Bearer " + accessToken);
-        return new AuthenticationResponse(user.getName(), user.getEmail());
+        return new AuthenticationResponse(user.getAlias(), user.getEmail());
     }
 
     private void validateUsername(String username) {
@@ -59,7 +59,7 @@ public class AuthenticationService implements UserDetailsService {
     }
 
     private boolean checkUsername(String username) {
-        return userRepository.findByUsername(username).isPresent();
+        return userRepository.findByAlias(username).isPresent();
     }
 
     @Override
@@ -74,7 +74,7 @@ public class AuthenticationService implements UserDetailsService {
 
     private User create(RegisterRequest request) {
         return User.builder()
-                .username(request.username())
+                .alias(request.username())
                 .email(request.email())
                 .password(encode(request.password()))
                 .build();
@@ -93,14 +93,14 @@ public class AuthenticationService implements UserDetailsService {
     }
 
     private AuthenticationException invalidCredentials() {
-        return new AuthenticationException("Credenciais inválidas.");
+        return new AuthenticationException("E-mail ou senha incorretos.");
     }
 
     private AuthenticationException emailExists() {
-        return new AuthenticationException("E-mail já cadastrado.");
+        return new AuthenticationException("Este endereço de e-mail já está em uso.");
     }
 
     private AuthenticationException usernameExists() {
-        return new AuthenticationException("Nome de usuário já cadastrado.");
+        return new AuthenticationException("Este nome de usuário já está sendo utilizado.");
     }
 }

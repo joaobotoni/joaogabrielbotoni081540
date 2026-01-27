@@ -1,29 +1,31 @@
-@if (feedback()) {
-<div class="fixed top-4 inset-x-4 z-50 md:inset-auto md:top-6 md:right-6 md:w-96 cursor-pointer animate-fade-in"
-  (click)="feedback.set(null)">
-  <app-shared-toast [toast]="feedback()!"></app-shared-toast>
-</div>
-}
-<div class="relative flex min-h-screen flex-col justify-center overflow-hidden bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+<div class="relative flex min-h-screen flex-col justify-center overflow-hidden bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 isolate">
+
+  <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+
+  <div class="absolute left-[20%] top-[-10%] -z-10 h-[500px] w-[500px] rounded-full bg-indigo-400/20 blur-[100px] opacity-50 mix-blend-multiply"></div>
+  <div class="absolute right-[20%] bottom-[-10%] -z-10 h-[500px] w-[500px] rounded-full bg-purple-400/20 blur-[100px] opacity-50 mix-blend-multiply"></div>
+
   <div class="relative sm:mx-auto sm:w-full sm:max-w-[480px]">
+    
     <div class="mb-10 text-center">
-      <div
-        class="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/20">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-          class="h-6 w-6">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+      <div class="group mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-900/20 transition-transform duration-500 hover:rotate-12 hover:scale-110">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-7 w-7">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
         </svg>
       </div>
-      <h2 class="text-3xl font-extrabold tracking-tight text-slate-900">
+      
+      <h2 class="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
         Junte-se a nós
       </h2>
       <p class="mt-3 text-base text-slate-500 max-w-sm mx-auto">
         Crie sua conta em segundos e comece agora.
       </p>
     </div>
-    <div class="bg-white rounded-2xl px-6 py-10 shadow-xl ring-1 ring-slate-300 sm:rounded-3xl sm:px-10">
+
+    <div class="bg-white/80 backdrop-blur-xl rounded-2xl px-6 py-10 shadow-[0_20px_50px_rgba(8,_112,_184,_0.07)] ring-1 ring-white/60 border border-slate-200/50 sm:rounded-3xl sm:px-10">
+      
       <form (submit)="$event.preventDefault()" class="space-y-5">
+        
         <div>
           <app-edit-text [inputProps]="{
               id: 'name',
@@ -33,9 +35,9 @@
               autocomplete: 'name',
               field: validators.username
             }"/>
-        
           <app-validation-errors [field]="validators.username" />
         </div>
+
         <div>
           <app-edit-text [inputProps]="{
             id: 'email',
@@ -47,6 +49,7 @@
           }"/>
           <app-validation-errors [field]="validators.email" />
         </div>
+
         <div>
           <app-edit-text [inputProps]="{
               id: 'password',
@@ -58,23 +61,32 @@
             }"/>
           <app-validation-errors [field]="validators.password" />
         </div>
+
         <div class="pt-4">
           <button type="submit" (click)="onSubmit()"
-            class="group relative flex w-full justify-center rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-medium text-white shadow-lg shadow-slate-900/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-slate-900/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 active:translate-y-0 active:scale-[0.98]">
+            class="group relative flex w-full justify-center rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-medium tracking-wide text-white shadow-lg shadow-slate-900/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-slate-900/40 hover:shadow-2xl active:translate-y-0 active:scale-[0.98]">
+            
             <div class="absolute inset-0 overflow-hidden rounded-xl">
-              <div
-                class="absolute -top-[100%] left-[50%] h-[20px] w-[200px] -translate-x-1/2 rotate-[25deg] bg-white/10 blur-xl transition-all duration-700 group-hover:top-[120%]">
+              <div class="absolute -top-[100%] left-[50%] h-[20px] w-[200px] -translate-x-1/2 rotate-[25deg] bg-gradient-to-r from-transparent via-white/20 to-transparent blur-md transition-all duration-700 group-hover:top-[120%]">
               </div>
             </div>
-            <span class="relative">Criar minha conta</span>
+            
+            <span class="relative flex items-center gap-2">
+              Criar minha conta
+              <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </span>
           </button>
         </div>
+
       </form>
-      <div class="mt-8 border-t border-slate-100 pt-6">
+
+      <div class="mt-8 border-t border-slate-100/80 pt-6">
         <p class="text-center text-sm text-slate-500">
           Já tem cadastro?
           <a routerLink="/login"
-            class="font-medium text-indigo-600 transition-colors hover:text-indigo-500 hover:underline hover:decoration-2 hover:underline-offset-2">
+            class="font-medium text-indigo-600 transition-all hover:text-indigo-500 hover:underline hover:underline-offset-4">
             Entrar agora
           </a>
         </p>

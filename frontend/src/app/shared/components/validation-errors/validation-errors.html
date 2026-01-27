@@ -1,7 +1,7 @@
 @for (err of field().errors(); track err) {
 @if (field().touched() || field().dirty()) {
 <div class="w-full animate-fade-in">
-     <app-shared-toast [toast]="error(err.message!)" />
+     <app-toast [toast]="error(err.message!)" />
 </div>
 }
 }

@@ -1,6 +1,9 @@
-import { Component, inject, ChangeDetectionStrategy, signal } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, computed } from '@angular/core';
 import { ActivatedRoute } from '@angular/router'
-import { AuthenticationFacade } from '../../../auth/presentation/authentication.facade.service';
+import { AuthenticationFacade } from '../../../auth/services/authentication.facade.service';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { AuthenticationResponse } from '../../../auth/presentation/domain/authentication.response';
+
 @Component({
   selector: 'app-home',
   imports: [],
@@ -10,17 +13,12 @@ import { AuthenticationFacade } from '../../../auth/presentation/authentication.
 export default class Home {
   private authFacade = inject(AuthenticationFacade)
   private route = inject(ActivatedRoute)
+  private data = toSignal(this.route.data, {requireSync : true})
 
-  isMenuOpen = false;
-  username = signal<string | null>('')
-  email = signal<string | null>('')
+  public user = computed(() => this.data()['user'] as AuthenticationResponse)
+  public isMenuOpen = false;
 
-  constructor() {
-    this.username.set(this.route.snapshot.paramMap.get('username'))
-    this.email.set(this.route.snapshot.paramMap.get('email'))
-  }
-
-  getInitials(name: string | null): string {
+  public getInitials(name: string | null): string {
     if (!name) return '';
     const parts = name.trim().split(' ');
     if (parts.length > 1) {
@@ -29,7 +27,7 @@ export default class Home {
     return name.substring(0, 2).toUpperCase();
   }
 
-  logOut() {
+  public logOut() {
     this.authFacade.logout().subscribe();
   }
 }

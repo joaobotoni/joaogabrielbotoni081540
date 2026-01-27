@@ -8,7 +8,7 @@ import { Error } from '../../../shared/domain/ui/toast';
   imports: [ToastComponent],
   templateUrl: "./validation-errors.html",
 })
-export default class ValidationErrors {
-  @Input({required: true}) field!: any;
+export class ValidationErrors {
   protected readonly error = Error;
+  @Input({ required: true }) field!: any;
 }

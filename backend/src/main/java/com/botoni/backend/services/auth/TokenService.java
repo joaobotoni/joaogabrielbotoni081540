@@ -165,14 +165,14 @@ public class TokenService {
     }
 
     private TokenException throwTokenCreationException() {
-        return new TokenException("Erro ao processar solicitação.");
+        return new TokenException("Erro no processamento");
     }
 
-    private AuthenticationException throwAuthenticationException() {
-        return new AuthenticationException("Falha na autenticação. Verifique suas credenciais.");
+    private TokenException throwAuthenticationException() {
+        return new TokenException("Sessão inválida. Autenticação necessária.");
     }
 
     private IllegalArgumentException throwInvalidDataException() {
-        return new IllegalArgumentException("Dados inválidos fornecidos.");
+        return new IllegalArgumentException("Dados de conta incompletos.");
     }
 }

@@ -1,10 +1,11 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '../../features/auth/presentation/guards/auth.guard';
+import { authResolver } from '../../features/auth/presentation/resolvers/auth.resolver';
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'register', 
+    redirectTo: 'register',
     pathMatch: 'full'
   },
   {
@@ -18,10 +19,11 @@ export const routes: Routes = [
   {
     path: "home",
     loadComponent: () => import('../../features/home/presentation/home/home'),
+    resolve: { user: authResolver },
     canActivate: [authGuard]
   },
   {
     path: "**",
-    redirectTo: "register" 
+    redirectTo: "register"
   },
 ];

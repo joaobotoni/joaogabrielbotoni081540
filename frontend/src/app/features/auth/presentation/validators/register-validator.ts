@@ -1,5 +1,5 @@
 import { form, required, email, minLength, pattern } from '@angular/forms/signals';
-import { RegisterRequest } from '../domain/register.request';
+import { RegisterRequest } from '../domain/register-request';
 import { WritableSignal } from '@angular/core';
 
 export function validate(data: WritableSignal<RegisterRequest>) {

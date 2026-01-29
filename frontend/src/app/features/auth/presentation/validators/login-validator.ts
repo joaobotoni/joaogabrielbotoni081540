@@ -1,6 +1,6 @@
 import { form, required, email } from '@angular/forms/signals';
 import { WritableSignal } from '@angular/core';
-import { LoginRequest } from '../domain/login.request';
+import { LoginRequest } from '../domain/login-request';
 
 export function validate(data: WritableSignal<LoginRequest>) {
     return form(data, (schemaPath) => {

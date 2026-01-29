@@ -1,12 +1,20 @@
 package com.botoni.backend.entities;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "artist")
+@Table(name = "album")
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Album {
 
     @Id
@@ -17,4 +25,6 @@ public class Album {
     @Column(name = "title",  nullable = false)
     private String title;
 
+    @ManyToMany(mappedBy = "albums")
+    private List<Artist> artists;
 }

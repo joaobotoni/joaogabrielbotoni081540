@@ -30,9 +30,8 @@ public class AuthenticationController {
     }
 
     @PutMapping("/refresh")
-    public ResponseEntity<Void> refresh(@CookieValue(name = TokenService.COOKIE_NAME, required = false)  String token, HttpServletResponse response) {
-        tokenService.refresh(token, response);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<AuthenticationResponse> refresh(@CookieValue(name = TokenService.COOKIE_NAME, required = false) String token, HttpServletResponse response) {
+        return ResponseEntity.ok(tokenService.refresh(token, response));
     }
 
     @PostMapping("/logout")

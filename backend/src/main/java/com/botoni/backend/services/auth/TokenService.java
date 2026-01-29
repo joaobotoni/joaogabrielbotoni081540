@@ -5,6 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.botoni.backend.dtos.authentication.AuthenticationResponse;
 import com.botoni.backend.entities.User;
 import com.botoni.backend.infra.exceptions.AuthenticationException;
 import com.botoni.backend.infra.exceptions.TokenException;
@@ -58,13 +59,14 @@ public class TokenService {
         }
     }
 
-    public void refresh(String token, HttpServletResponse response) {
+    public AuthenticationResponse refresh(String token, HttpServletResponse response) {
         validatePresentToken(token);
         User user = extractUserPayload(token);
         String newAccessToken = generateAccessToken(user);
         String newRefreshToken = generateRefreshToken(user);
         addCookie(response, newRefreshToken);
         response.setHeader(AUTHORIZATION_HEADER, BEARER_PREFIX + newAccessToken);
+        return new AuthenticationResponse(user.getAlias(), user.getEmail());
     }
 
     public void logout(HttpServletResponse response) {

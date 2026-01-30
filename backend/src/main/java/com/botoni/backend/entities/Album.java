@@ -1,11 +1,9 @@
 package com.botoni.backend.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+import java.time.Year;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,6 +13,7 @@ import java.util.UUID;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class Album {
 
     @Id
@@ -22,8 +21,11 @@ public class Album {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "title",  nullable = false)
+    @Column(name = "title", unique = true,  nullable = false)
     private String title;
+
+    @Column(name = "year_released", nullable = false)
+    private Year year;
 
     @ManyToMany(mappedBy = "albums")
     private List<Artist> artists;

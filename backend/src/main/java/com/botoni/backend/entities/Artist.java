@@ -23,11 +23,11 @@ public class Artist {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @ManyToOne
+    @JoinColumn(name = "id_genre")
+    private Genre genre;
+
     @ManyToMany
-    @JoinTable(
-            name = "artist_album",
-            joinColumns = @JoinColumn(name = "id_artist"),
-            inverseJoinColumns = @JoinColumn(name = "id_album")
-    )
+    @JoinTable(name = "artist_album", joinColumns = @JoinColumn(name = "id_artist"), inverseJoinColumns = @JoinColumn(name = "id_album"))
     private List<Album> albums;
 }

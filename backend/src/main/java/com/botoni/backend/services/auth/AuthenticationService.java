@@ -1,10 +1,12 @@
 package com.botoni.backend.services.auth;
+
 import com.botoni.backend.dtos.authentication.AuthenticationResponse;
 import com.botoni.backend.dtos.authentication.LoginRequest;
 import com.botoni.backend.dtos.authentication.RegisterRequest;
 import com.botoni.backend.entities.User;
 import com.botoni.backend.infra.exceptions.AuthenticationException;
 import com.botoni.backend.repositories.UserRepository;
+import com.botoni.backend.uitils.mapper.AuthMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
@@ -13,102 +15,58 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-
-
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthMapper authMapper;
     private final TokenService tokenService;
 
     public AuthenticationResponse register(RegisterRequest request, HttpServletResponse response) {
-        validateUsername(request.username());
-        validateEmail(request.email());
-        User user = create(request);
-        User savedUser = save(user);
-        return buildAuthenticationResponse(savedUser, response);
+        validateUniqueUsername(request.username());
+        validateUniqueEmail(request.email());
+
+        User user = authMapper.map(request);
+        user.setPassword(passwordEncoder.encode(request.password()));
+
+        return generateAuthenticationResponse(userRepository.save(user), response);
     }
 
     public AuthenticationResponse login(LoginRequest request, HttpServletResponse response) {
-        User user = findByEmail(request.email());
-        validatePassword(request.password(), user);
-        return buildAuthenticationResponse(user, response);
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new AuthenticationException("E-mail ou senha incorretos."));
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new AuthenticationException("E-mail ou senha incorretos.");
+        }
+
+        return generateAuthenticationResponse(user, response);
     }
 
     @Override
-
     public @NonNull UserDetails loadUserByUsername(@NonNull String username) {
-        return findByEmail(username);
+        return userRepository.findByEmail(username)
+                .orElseThrow(() -> new AuthenticationException("E-mail ou senha incorretos."));
     }
 
-    private AuthenticationResponse buildAuthenticationResponse(User user, HttpServletResponse response) {
+    private AuthenticationResponse generateAuthenticationResponse(User user, HttpServletResponse response) {
         String accessToken = tokenService.generateAccessToken(user);
         String refreshToken = tokenService.generateRefreshToken(user);
-        tokenService.addCookie(response, refreshToken);
-        return new AuthenticationResponse(user.getAlias(), user.getEmail(), accessToken);
+        tokenService.addRefreshTokenCookie(response, refreshToken);
+        return authMapper.map(user, accessToken);
     }
 
-    private void validateUsername(String username) {
-        if (checkUsername(username)) throw usernameExists();
+    private void validateUniqueUsername(String username) {
+        if (userRepository.findByAlias(username).isPresent()) {
+            throw new AuthenticationException("Este nome de usuário já está sendo utilizado.");
+        }
     }
 
-
-    private void validateEmail(String email) {
-        if (checkEmail(email)) throw emailExists();
-    }
-
-
-    private void validatePassword(String raw, User user) {
-        if (!matches(raw, user.getPassword())) throw invalidCredentials();
-    }
-
-
-    private boolean checkEmail(String email) {
-        return userRepository.findByEmail(email).isPresent();
-    }
-
-
-    private boolean checkUsername(String username) {
-        return userRepository.findByAlias(username).isPresent();
-    }
-
-    private User findByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(this::invalidCredentials);
-    }
-
-    private User create(RegisterRequest request) {
-        return User.builder()
-                .alias(request.username())
-                .email(request.email())
-                .password(encode(request.password()))
-                .build();
-    }
-
-    private User save(User user) {
-        return userRepository.save(user);
-    }
-
-    private String encode(String raw) {
-        return passwordEncoder.encode(raw);
-    }
-
-    private boolean matches(String raw, String encoded) {
-        return passwordEncoder.matches(raw, encoded);
-    }
-
-    private AuthenticationException invalidCredentials() {
-        return new AuthenticationException("E-mail ou senha incorretos.");
-    }
-
-
-    private AuthenticationException emailExists() {
-        return new AuthenticationException("Este endereço de e-mail já está em uso.");
-    }
-
-    private AuthenticationException usernameExists() {
-        return new AuthenticationException("Este nome de usuário já está sendo utilizado.");
+    private void validateUniqueEmail(String email) {
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new AuthenticationException("Este endereço de e-mail já está em uso.");
+        }
     }
 }

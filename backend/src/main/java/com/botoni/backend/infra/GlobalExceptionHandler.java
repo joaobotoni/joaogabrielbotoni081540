@@ -1,12 +1,13 @@
 package com.botoni.backend.infra;
 
+import com.botoni.backend.infra.exceptions.AlbumDomainException;
+import com.botoni.backend.infra.exceptions.ArtistDomainException;
 import com.botoni.backend.infra.exceptions.AuthenticationException;
 import com.botoni.backend.infra.exceptions.TokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -28,6 +29,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TokenException.class)
     public ResponseEntity<ProblemDetail> handleTokenException(TokenException exception) {
         var problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, exception.getMessage());
+        return ResponseEntity.status(problem.getStatus()).body(problem);
+    }
+
+    @ExceptionHandler(ArtistDomainException.class)
+    public ResponseEntity<ProblemDetail> handleArtistException(ArtistDomainException exception) {
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
+        return ResponseEntity.status(problem.getStatus()).body(problem);
+    }
+
+    @ExceptionHandler(AlbumDomainException.class)
+    public ResponseEntity<ProblemDetail> handleAlbumException(AlbumDomainException exception) {
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
         return ResponseEntity.status(problem.getStatus()).body(problem);
     }
 

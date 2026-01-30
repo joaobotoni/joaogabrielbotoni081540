@@ -24,3 +24,5 @@ minio:
   bucket-name: ${MINIO_BUCKET_NAME}
 api:
   domain: ${DOMAIN}
+
+

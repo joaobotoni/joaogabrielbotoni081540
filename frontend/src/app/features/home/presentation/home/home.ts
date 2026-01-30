@@ -38,6 +38,6 @@ export default class Home {
   }
 
   public logOut() {
-    this.authFacade.logout().subscribe();
+    this.authFacade.logout();
   }
 }

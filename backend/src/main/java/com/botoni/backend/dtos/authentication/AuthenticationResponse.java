@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record AuthenticationResponse(
         String username,
-        String email
+        String email,
+        String token
 ) {
-
 }

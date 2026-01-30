@@ -8,83 +8,76 @@ import { AuthenticationResponse } from '../presentation/domain/authentication-re
 import { RegisterRequest } from '../presentation/domain/register-request';
 import { ToastService } from '../../../shared/services/toast-service';
 import { CookieService } from 'ngx-cookie-service';
+import { email } from '@angular/forms/signals';
 
 const COOKIE_TOKEN = 'access';
 const COOKIE_USER = 'user';
+
 const COOKIE_EXPIRATION = 30 / 86400;
-const TOKEN_PREFIX = 'Bearer ';
 const ROUTES = { HOME: '/home', LOGIN: '/login' };
 
 @Injectable({ providedIn: 'root' })
 export class AuthenticationFacade {
-    
-    private readonly authService = inject(AuthenticationService);
 
+    private readonly authService = inject(AuthenticationService);
     private readonly cookie = inject(CookieService);
     private readonly router = inject(Router);
     private readonly toast = inject(ToastService);
 
-    public isAuth(): boolean {
-        return !!this.getToken();
-    }
+    public isAuth = (): boolean => !!this.getToken();
 
     public login(request: LoginRequest): Observable<HttpResponse<AuthenticationResponse>> {
         return this.authService.login(request, { observe: 'response' }).pipe(
-            tap(res => this.onAuth(res, ROUTES.HOME, 'Login realizado com sucesso')),
+            tap(res => this.handleAuth(res, ROUTES.HOME, 'Login realizado com sucesso')),
             catchError(err => this.onError(err))
         );
     }
 
     public register(request: RegisterRequest): Observable<HttpResponse<AuthenticationResponse>> {
         return this.authService.register(request, { observe: 'response' }).pipe(
-            tap(res => this.onAuth(res, ROUTES.HOME, 'Cadastro realizado com sucesso')),
-            catchError(err => this.onError(err))
-        );
-    }
-
-    public logout(): Observable<HttpResponse<void>> {
-        return this.authService.logout().pipe(
-            tap(() => { this.clear(); this.navigate(ROUTES.LOGIN, 'Logout realizado com sucesso'); }),
+            tap(res => this.handleAuth(res, ROUTES.HOME, 'Cadastro realizado com sucesso')),
             catchError(err => this.onError(err))
         );
     }
 
     public refresh(): Observable<HttpResponse<AuthenticationResponse>> {
         return this.authService.refresh({ observe: 'response' }).pipe(
-            tap(res => { this.saveToken(res); this.saveUser(res) }),
-            catchError(err => this.onError(err))
+            tap(res => this.handleAuth(res)),
+            catchError(err => {
+                this.clear();
+                return this.onError(err);
+            })
         );
     }
+
+    public logout(): void {
+        this.authService.logout().subscribe({
+            next: () => this.clear(),
+            error: err => this.onError(err)
+        });
+    }
+
+    public getToken = (): string | null => this.cookie.get(COOKIE_TOKEN) || null;
 
     public getUser(): AuthenticationResponse | null {
         const data = this.cookie.get(COOKIE_USER);
         return data ? JSON.parse(data) : null;
     }
 
-    public getToken(): string | null {
-        return this.cookie.get(COOKIE_TOKEN) || null;
-    }
-
     public clear(): void {
         this.cookie.delete(COOKIE_TOKEN, '/');
         this.cookie.delete(COOKIE_USER, '/');
+        this.navigate(ROUTES.LOGIN, 'Logout realizado com sucesso');
     }
 
-    private onAuth(res: HttpResponse<AuthenticationResponse>, route: string, msg: string): void {
-        if (!res.body) return;
-        this.saveToken(res);
-        this.saveUser(res);
-        this.navigate(route, msg);
-    }
+    private handleAuth(res: HttpResponse<AuthenticationResponse>, route?: string, msg?: string): void {
+        const data = res.body;
+        if (!data?.token) return;
 
-    private saveToken(res: HttpResponse<AuthenticationResponse>): void {
-        const header = res.headers.get('Authorization');
-        const token = header?.startsWith(TOKEN_PREFIX) ? header.substring(TOKEN_PREFIX.length) : null;
-        if (token) this.save(COOKIE_TOKEN, token);
-    }
+        this.save(COOKIE_TOKEN, data.token);
+        this.save(COOKIE_USER, JSON.stringify({ username: data.username, email: data.email }));
 
-    private saveUser(res: HttpResponse<AuthenticationResponse>): void {
-        if (res.body) this.save(COOKIE_USER, JSON.stringify(res.body));
+        if (route && msg) this.navigate(route, msg);
     }
 
     private save(name: string, value: string): void {
@@ -96,7 +89,7 @@ export class AuthenticationFacade {
     }
 
     private onError(err: HttpErrorResponse): Observable<never> {
-        this.toast.error(err.error?.detail || 'Erro desconhecido');
+        this.toast.error(err.error?.detail || 'Erro na operação');
         return throwError(() => err);
     }
 }

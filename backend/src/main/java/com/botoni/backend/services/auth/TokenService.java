@@ -18,15 +18,21 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
+
 @Service
+
 @RequiredArgsConstructor
+
 public class TokenService {
+
     public static final String COOKIE_NAME = "refresh";
-    private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final String COOKIE_PATH = "/";
     private static final String SAME_SITE_ATTRIBUTE = "SameSite";
     private static final String SAME_SITE_VALUE = "Strict";
+    private static final String CLAIM_TYPE = "typ";
+    private static final String TYPE_ACCESS = "access";
+    private static final String TYPE_REFRESH = "refresh";
+
     @Value("${jwt.secret}")
     private String secret;
 
@@ -43,30 +49,31 @@ public class TokenService {
 
     public String generateAccessToken(User user) {
         validateUser(user);
-        return createToken(user, access);
+        return createToken(user, access, TYPE_ACCESS);
     }
 
     public String generateRefreshToken(User user) {
         validateUser(user);
-        return createToken(user, refresh);
+        return createToken(user, refresh, TYPE_REFRESH);
     }
 
     public String validateToken(String token) {
         try {
-            return getSubject(token);
-        } catch (JWTVerificationException e) {
+            return getSubject(token, TYPE_ACCESS);
+        } catch (JWTVerificationException | AuthenticationException e) {
             return null;
         }
     }
 
     public AuthenticationResponse refresh(String token, HttpServletResponse response) {
+
         validatePresentToken(token);
         User user = extractUserPayload(token);
         String newAccessToken = generateAccessToken(user);
         String newRefreshToken = generateRefreshToken(user);
         addCookie(response, newRefreshToken);
-        response.setHeader(AUTHORIZATION_HEADER, BEARER_PREFIX + newAccessToken);
-        return new AuthenticationResponse(user.getAlias(), user.getEmail());
+        return new AuthenticationResponse(newAccessToken, user.getAlias(), user.getEmail());
+
     }
 
     public void logout(HttpServletResponse response) {
@@ -78,36 +85,40 @@ public class TokenService {
         response.addCookie(buildCookie(token));
     }
 
-    private String createToken(User user, long expirationInSeconds) {
+    private String createToken(User user, long expirationInSeconds, String type) {
+
         try {
-            return buildJwt(user, expirationInSeconds);
+            return buildJwt(user, expirationInSeconds, type);
         } catch (JWTCreationException e) {
             throw throwTokenCreationException();
         }
+
     }
 
-    private String buildJwt(User user, long seconds) {
+    private String buildJwt(User user, long seconds, String type) {
         return JWT.create()
                 .withIssuer(issuer)
                 .withSubject(normalize(user.getEmail()))
+                .withClaim(CLAIM_TYPE, type)
                 .withExpiresAt(expiration(seconds))
                 .sign(getAlgorithm());
     }
 
-    private String getSubject(String token) {
-        return decode(token).getSubject();
+    private String getSubject(String token, String expectedType) {
+        return decode(token, expectedType).getSubject();
     }
 
-    private DecodedJWT decode(String token) {
+    private DecodedJWT decode(String token, String expectedType) {
         return JWT.require(getAlgorithm())
                 .withIssuer(issuer)
+                .withClaim(CLAIM_TYPE, expectedType)
                 .build()
                 .verify(token);
     }
 
     private User extractUserPayload(String token) {
         try {
-            String email = getSubject(token);
+            String email = getSubject(token, TokenService.TYPE_REFRESH);
             return findByEmail(email);
         } catch (JWTVerificationException e) {
             throw throwAuthenticationException();
@@ -121,6 +132,7 @@ public class TokenService {
 
     private Cookie buildCookie(String value) {
         return createCookie(value, refresh);
+
     }
 
     private Cookie buildExpired() {
@@ -169,6 +181,7 @@ public class TokenService {
     private TokenException throwTokenCreationException() {
         return new TokenException("Erro no processamento");
     }
+
 
     private TokenException throwAuthenticationException() {
         return new TokenException("Sessão inválida. Autenticação necessária.");

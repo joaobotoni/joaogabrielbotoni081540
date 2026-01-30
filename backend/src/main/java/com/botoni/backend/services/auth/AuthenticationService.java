@@ -1,16 +1,19 @@
 package com.botoni.backend.services.auth;
-
-import com.botoni.backend.dtos.authentication.*;
+import com.botoni.backend.dtos.authentication.AuthenticationResponse;
+import com.botoni.backend.dtos.authentication.LoginRequest;
+import com.botoni.backend.dtos.authentication.RegisterRequest;
 import com.botoni.backend.entities.User;
 import com.botoni.backend.infra.exceptions.AuthenticationException;
 import com.botoni.backend.repositories.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+
 
 @Service
 @RequiredArgsConstructor
@@ -24,52 +27,56 @@ public class AuthenticationService implements UserDetailsService {
         validateUsername(request.username());
         validateEmail(request.email());
         User user = create(request);
-        User saved = save(user);
-        return response(saved, response);
+        User savedUser = save(user);
+        return buildAuthenticationResponse(savedUser, response);
     }
 
     public AuthenticationResponse login(LoginRequest request, HttpServletResponse response) {
         User user = findByEmail(request.email());
         validatePassword(request.password(), user);
-        return response(user, response);
+        return buildAuthenticationResponse(user, response);
     }
 
-    private AuthenticationResponse response(User user, HttpServletResponse response) {
+    @Override
+
+    public @NonNull UserDetails loadUserByUsername(@NonNull String username) {
+        return findByEmail(username);
+    }
+
+    private AuthenticationResponse buildAuthenticationResponse(User user, HttpServletResponse response) {
         String accessToken = tokenService.generateAccessToken(user);
         String refreshToken = tokenService.generateRefreshToken(user);
         tokenService.addCookie(response, refreshToken);
-        response.setHeader("Authorization", "Bearer " + accessToken);
-        return new AuthenticationResponse(user.getAlias(), user.getEmail());
+        return new AuthenticationResponse(user.getAlias(), user.getEmail(), accessToken);
     }
 
     private void validateUsername(String username) {
         if (checkUsername(username)) throw usernameExists();
     }
 
+
     private void validateEmail(String email) {
         if (checkEmail(email)) throw emailExists();
     }
+
 
     private void validatePassword(String raw, User user) {
         if (!matches(raw, user.getPassword())) throw invalidCredentials();
     }
 
+
     private boolean checkEmail(String email) {
         return userRepository.findByEmail(email).isPresent();
     }
+
 
     private boolean checkUsername(String username) {
         return userRepository.findByAlias(username).isPresent();
     }
 
-    @Override
-    @NullMarked
-    public UserDetails loadUserByUsername(String username) {
-        return findByEmail(username);
-    }
-
     private User findByEmail(String email) {
-        return userRepository.findByEmail(email).orElseThrow(this::invalidCredentials);
+        return userRepository.findByEmail(email)
+                .orElseThrow(this::invalidCredentials);
     }
 
     private User create(RegisterRequest request) {
@@ -95,6 +102,7 @@ public class AuthenticationService implements UserDetailsService {
     private AuthenticationException invalidCredentials() {
         return new AuthenticationException("E-mail ou senha incorretos.");
     }
+
 
     private AuthenticationException emailExists() {
         return new AuthenticationException("Este endereço de e-mail já está em uso.");
